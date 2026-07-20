@@ -131,6 +131,7 @@ export interface ItemRow {
   waitUntil: Date | null;
   notes: string | null;
   bought: boolean;
+  boughtAt: Date | null;
   fav: boolean;
   lastCheckedAt: Date | null;
   createdAt: Date;

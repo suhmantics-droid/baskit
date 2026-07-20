@@ -90,7 +90,9 @@ export async function PATCH(request: Request, ctx: Ctx) {
         ...(input.cooldownDays !== undefined ? { cooldownDays: input.cooldownDays } : {}),
         ...(waitUntil !== undefined ? { waitUntil: waitUntil ? new Date(waitUntil) : null } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
-        ...(input.bought !== undefined ? { bought: input.bought } : {}),
+        ...(input.bought !== undefined
+          ? { bought: input.bought, boughtAt: input.bought && !existing.bought ? new Date(now) : input.bought ? existing.boughtAt : null }
+          : {}),
         ...(input.fav !== undefined ? { fav: input.fav } : {}),
         ...(priceChanged && input.price != null
           ? { prices: { create: [{ price: input.price, source: "manual" }] } }

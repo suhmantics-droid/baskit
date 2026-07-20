@@ -108,6 +108,7 @@ model Item {
   waitUntil     DateTime?
   notes         String?
   bought        Boolean      @default(false)
+  boughtAt      DateTime? // set when bought flips true; drives the monthly ledger
   fav           Boolean      @default(false)
   lastCheckedAt DateTime?
   createdAt     DateTime     @default(now())

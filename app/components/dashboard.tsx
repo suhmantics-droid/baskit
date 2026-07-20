@@ -19,6 +19,8 @@ import { DetailPanel } from "./detail-panel";
 import { Sidebar, type Scope } from "./sidebar";
 import { ListModal } from "./list-modal";
 import { ListHeader } from "./list-header";
+import { PlanPanel } from "./plan-panel";
+import { SegDash } from "./seg-dash";
 
 type StatusFilter = "all" | "want" | "later" | "research" | "ready";
 type SortKey = "score" | "recent" | "priceHigh" | "priceLow" | "priority" | "cooldown" | "drop";
@@ -300,8 +302,30 @@ export function Dashboard({ user }: DashboardProps) {
                   <small>{user.email}</small>
                 </div>
                 <div className="sep" />
+                <a className="mi" href="/api/me/export">
+                  ⬇ Export my data
+                </a>
+                <button
+                  className="mi"
+                  style={{ width: "100%", border: "none", background: "none", color: "var(--bad)" }}
+                  onClick={async () => {
+                    if (!confirm("Delete your account and everything in it? This cannot be undone.")) return;
+                    try {
+                      await api.deleteMe();
+                      signOut({ callbackUrl: "/" });
+                    } catch {
+                      showToast("Couldn't delete the account, email us instead");
+                    }
+                  }}
+                >
+                  🗑 Delete account
+                </button>
+                <div className="sep" />
                 <a className="mi" href="https://baskit.suhmantics.com/privacy.html" target="_blank" rel="noopener noreferrer">
                   🔒 Privacy
+                </a>
+                <a className="mi" href="https://baskit.suhmantics.com/terms.html" target="_blank" rel="noopener noreferrer">
+                  📄 Terms
                 </a>
                 <button className="mi" style={{ width: "100%", border: "none", background: "none" }} onClick={() => signOut({ callbackUrl: "/" })}>
                   Sign out
@@ -451,6 +475,29 @@ export function Dashboard({ user }: DashboardProps) {
               <div className="s">{stats.capped ? (stats.over ? "trim these" : "all within budget") : "no caps set"}</div>
             </div>
           </div>
+          )}
+
+          {view === "all" && items && items.length > 0 && (
+            <PlanPanel
+              items={items}
+              budget={user.monthlyBudget}
+              now={now}
+              onOpen={setDetailId}
+              onBudgetSaved={() => window.location.reload()}
+              showToast={showToast}
+            />
+          )}
+          {view === "all" && (
+            <SegDash
+              lists={lists ?? []}
+              domainLists={domainLists}
+              items={items ?? []}
+              onSelect={(s) => {
+                setScope(s);
+                window.scrollTo(0, 0);
+              }}
+              onNewList={(parentId) => setListModal({ list: null, parentId })}
+            />
           )}
 
           {view !== "all" && view !== "__fav" && view !== "__bought" && (

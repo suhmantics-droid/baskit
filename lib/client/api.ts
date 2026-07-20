@@ -24,6 +24,7 @@ export interface WireItem {
   waitUntil: string | null;
   notes: string | null;
   bought: boolean;
+  boughtAt: string | null;
   fav: boolean;
   lastCheckedAt: string | null;
   createdAt: string;
@@ -66,6 +67,7 @@ export function wireToDomainItem(w: WireItem): DomainItem {
     cooldownDays: w.cooldownDays,
     waitUntil: w.waitUntil ? Date.parse(w.waitUntil) : null,
     bought: w.bought,
+    boughtAt: w.boughtAt ? Date.parse(w.boughtAt) : null,
     fav: w.fav,
     createdAt: Date.parse(w.createdAt),
     prices: w.prices?.map((p) => ({ price: p.price, checkedAt: Date.parse(p.checkedAt), source: p.source })),
@@ -113,6 +115,9 @@ export const api = {
   patchItem: (id: string, body: unknown) =>
     request<{ item: WireItem }>(`/api/items/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   deleteItem: (id: string) => request<{ ok: true }>(`/api/items/${id}`, { method: "DELETE" }),
+  patchMe: (body: unknown) =>
+    request<{ user: unknown }>("/api/me", { method: "PATCH", body: JSON.stringify(body) }),
+  deleteMe: () => request<{ ok: true }>("/api/me", { method: "DELETE" }),
   lists: () => request<{ lists: WireListNode[] }>("/api/lists"),
   createList: (body: unknown) =>
     request<{ list: WireListNode }>("/api/lists", { method: "POST", body: JSON.stringify(body) }),

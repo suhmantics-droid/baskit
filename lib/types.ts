@@ -53,6 +53,8 @@ export interface Item {
   /** Epoch ms when the cool-off ends; null when no cool-off is active. */
   waitUntil?: number | null;
   bought: boolean;
+  /** Epoch ms when the item was marked bought; null when not bought. */
+  boughtAt?: number | null;
   /** Marked as a favourite by the user. */
   fav: boolean;
   /** Epoch ms when the item was created. */

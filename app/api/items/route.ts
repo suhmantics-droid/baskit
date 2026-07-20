@@ -41,7 +41,10 @@ export async function GET(request: Request) {
             }
           : {}),
       },
-      include: { lists: { select: { listId: true } } },
+      include: {
+        lists: { select: { listId: true } },
+        prices: { select: { price: true, checkedAt: true, source: true }, orderBy: { checkedAt: "asc" } },
+      },
       orderBy: { createdAt: "desc" },
     });
     return Response.json({ items: rows.map(serializeItem) });

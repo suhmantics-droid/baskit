@@ -108,6 +108,7 @@ function makeRow(): ItemRow {
     waitUntil: null,
     notes: null,
     bought: false,
+    boughtAt: null,
     fav: true,
     lastCheckedAt: null,
     createdAt: new Date("2026-07-01T00:00:00Z"),

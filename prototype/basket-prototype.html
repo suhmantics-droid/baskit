@@ -581,7 +581,9 @@
     mi(m,"🏷 Scan sites for sales",function(){ scanSales(); });
     mi(m,(db.settings.autoCheck===false?"○":"◉")+" Auto price-check weekly",function(){ db.settings.autoCheck=(db.settings.autoCheck===false); save(); toast(db.settings.autoCheck?"Auto price-check on — runs when you open Baskit":"Auto price-check off"); });
     sep(m);
+    mi(m,'☁️ Get accounts (beta) — basket on every device',function(){ window.open("https://baskit-app-eta.vercel.app","_blank"); });
     mi(m,'🔒 Privacy',function(){ window.open("/privacy.html","_blank"); });
+    mi(m,'📄 Terms',function(){ window.open("/terms.html","_blank"); });
     function mi(m,html,fn){ var d=document.createElement("div"); d.className="mi"; d.innerHTML=html; d.onclick=fn; m.appendChild(d); }
     function sep(m){ var s=document.createElement("div"); s.className="sep"; m.appendChild(s); }
   }
@@ -1264,6 +1266,8 @@
   function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove("show"); },2000); }
 
   window.addEventListener("hashchange",handleHash);
+  // ask the browser to protect local data from eviction (mitigates iOS/Safari cleanup)
+  try{ if(navigator.storage&&navigator.storage.persist){ navigator.storage.persist(); } }catch(e){}
   render(); handleHash(); maybeAutoRefresh();
 })();
 </script>
