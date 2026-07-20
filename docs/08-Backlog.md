@@ -38,8 +38,8 @@ Work top-to-bottom. Each ticket is one focused session. Tick the box when types 
 - [ ] **E4-5** Notification preferences (channels, quiet hours, frequency, payday) in settings.
 
 ## Epic 5 — Sharing & gifting (pre-Christmas) — `docs/01`
-- [ ] **E5-1** `ListMember` + share invite flow (view/edit). _(Research 2026-07-20: Moonsift's growth loop is share-by-link with NO account needed to view/reserve — match that; WishUpon/GiftList also do "secret mode"/reveal control, which our hidden Reservation model already supports.)_
-- [ ] **E5-2** Gift **reservation** hidden from list owner; reserved state for givers.
+- [x] **E5-1** Share by link (view). _(Shipped 2026-07-20 as the Moonsift loop instead of ListMember invites: `List.shareToken`, POST `/api/lists/:id/share` toggle, public `/s/[token]` page viewable with NO account, Share/Unshare + link-copy in the list header. ListMember edit-invites remain future work.)_
+- [x] **E5-2** Gift **reservation** hidden from list owner; reserved state for givers. _(Anonymous reservations: name only, no account; one per item enforced by DB unique; 409 on double-reserve; reserver name shown to no one; owner APIs contain no reservation data. E2E-verified.)_
 - [ ] **E5-3** Optional group budget split view.
 
 ## Epic 6 — Commercial hardening
