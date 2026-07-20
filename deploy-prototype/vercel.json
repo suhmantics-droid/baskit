@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "mkdir -p out && cp -r index.html privacy.html terms.html og.png apple-touch-icon.png demo out/",
+  "outputDirectory": "out"
+}
