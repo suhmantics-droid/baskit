@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/*
+ * Basket design tokens — ported verbatim from prototype/basket-prototype.html.
+ * Light values live on :root; dark values apply when the <html> element carries
+ * data-theme="dark". prefers-color-scheme is honoured as the default before the
+ * user has made an explicit choice (the theme toggle stamps data-theme).
+ */
+:root {
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --surface-2: #f6f4ef;
+  --ink: #16130f;
+  --ink-soft: #6b665e;
+  --ink-faint: #9c968c;
+  --line: #ece9e3;
+  --line-strong: #ddd8cf;
+  --good: #2f7d5b;
+  --good-bg: #e7f3ec;
+  --warn: #a86b1f;
+  --warn-bg: #f7eede;
+  --cool: #3a6ea5;
+  --cool-bg: #e8f0f8;
+  --bad: #b23b3b;
+  --bad-bg: #f6e7e5;
+  --accent: #2a78d6;
+  --accent-soft: #cde2fb;
+  --shadow: 0 1px 2px rgba(20, 16, 10, 0.05), 0 10px 30px rgba(20, 16, 10, 0.08);
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+
+html[data-theme="dark"] {
+  --bg: #141311;
+  --surface: #1c1a17;
+  --surface-2: #232019;
+  --ink: #f4f1ea;
+  --ink-soft: #b0aaa0;
+  --ink-faint: #7d776d;
+  --line: #2a2723;
+  --line-strong: #3a352f;
+  --good: #57b98a;
+  --good-bg: #16281d;
+  --warn: #d29a52;
+  --warn-bg: #2c2213;
+  --cool: #7aa7d8;
+  --cool-bg: #172230;
+  --bad: #d9706b;
+  --bad-bg: #2e1917;
+  --accent: #3987e5;
+  --accent-soft: #17324f;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 34px rgba(0, 0, 0, 0.45);
+}
+
+/* Before an explicit theme choice, follow the OS preference. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #141311;
+    --surface: #1c1a17;
+    --surface-2: #232019;
+    --ink: #f4f1ea;
+    --ink-soft: #b0aaa0;
+    --ink-faint: #7d776d;
+    --line: #2a2723;
+    --line-strong: #3a352f;
+    --good: #57b98a;
+    --good-bg: #16281d;
+    --warn: #d29a52;
+    --warn-bg: #2c2213;
+    --cool: #7aa7d8;
+    --cool-bg: #172230;
+    --bad: #d9706b;
+    --bad-bg: #2e1917;
+    --accent: #3987e5;
+    --accent-soft: #17324f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 34px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* Expose tokens to Tailwind's utility theme so bg-bg, text-ink, etc. resolve. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-cool: var(--cool);
+  --color-bad: var(--bad);
+  --color-accent: var(--accent);
+  --radius-card: var(--radius);
+  --radius-sm: var(--radius-sm);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

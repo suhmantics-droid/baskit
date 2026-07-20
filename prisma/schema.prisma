@@ -1,0 +1,189 @@
+// Baskit data model — ported from docs/03-Data-Model.md.
+// Money is stored as integer minor units + an ISO currency code (never floats).
+// Timestamps are UTC. See lib/types.ts for the decoupled shapes the pure logic uses.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Connection URL is supplied at runtime via prisma.config.ts (process.env.DATABASE_URL).
+}
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  emailVerified DateTime? // Auth.js: set when the magic link is used
+  name          String?
+  image         String?
+  currency      String       @default("GBP")
+  monthlyBudget Int? // minor units
+  createdAt     DateTime     @default(now())
+  items         Item[]
+  lists         List[]
+  notifPrefs    Json? // channels, quietHours, frequency, payday
+  memberships   ListMember[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+// ---- Auth.js (next-auth v5) tables — shapes fixed by @auth/prisma-adapter ----
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model List {
+  id        String     @id @default(cuid())
+  ownerId   String
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  emoji     String     @default("🗂")
+  parentId  String?
+  parent    List?      @relation("Nesting", fields: [parentId], references: [id])
+  children  List[]     @relation("Nesting")
+  cap       Int? // minor units
+  dueDate   DateTime?
+  createdAt DateTime   @default(now())
+  items     ItemList[]
+  members   ListMember[]
+
+  @@index([ownerId])
+  @@index([parentId])
+}
+
+model Item {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  url           String?
+  domain        String? // normalised host, for sale grouping + adapters
+  imageUrl      String?
+  currency      String       @default("GBP")
+  price         Int? // latest, minor units (denormalised from PricePoint)
+  targetPrice   Int?
+  stock         String       @default("unknown") // in|low|out|unknown
+  category      String?
+  tags          String[]
+  code          String?
+  status        String       @default("want") // want|later|research
+  priority      String       @default("nice") // must|nice|impulse
+  cooldownDays  Int          @default(0)
+  waitUntil     DateTime?
+  notes         String?
+  bought        Boolean      @default(false)
+  fav           Boolean      @default(false)
+  lastCheckedAt DateTime?
+  createdAt     DateTime     @default(now())
+  lists         ItemList[]
+  prices        PricePoint[]
+
+  @@index([userId])
+  @@index([domain])
+}
+
+model ItemList {
+  itemId String
+  listId String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  list   List   @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, listId])
+}
+
+model PricePoint {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  price     Int // minor units
+  source    String // "feed" | "jsonld" | "og" | "headless" | "manual"
+  checkedAt DateTime @default(now())
+
+  @@index([itemId, checkedAt])
+}
+
+model SaleSignal {
+  // per domain, shared across users
+  domain    String   @id
+  found     Boolean
+  text      String? // matched phrase, e.g. "up to 60% off"
+  snippet   String?
+  endsAt    DateTime?
+  checkedAt DateTime @default(now())
+}
+
+model ListMember {
+  // sharing / gifting
+  id     String  @id @default(cuid())
+  listId String
+  list   List    @relation(fields: [listId], references: [id], onDelete: Cascade)
+  userId String? // null = pending email invite
+  user   User?   @relation(fields: [userId], references: [id])
+  email  String?
+  role   String  @default("viewer") // owner|editor|viewer
+
+  @@index([listId])
+}
+
+model Reservation {
+  // gift reservation (hidden from list owner)
+  id           String   @id @default(cuid())
+  itemId       String
+  reservedById String
+  createdAt    DateTime @default(now())
+
+  @@unique([itemId, reservedById])
+}
+
+model Moment {
+  // a generated nudge
+  id           String    @id @default(cuid())
+  userId       String
+  itemId       String?
+  kind         String // target_hit|sale|cooloff_done|back_in_stock|budget_window
+  title        String
+  body         String
+  deeplink     String
+  dedupeKey    String    @unique
+  status       String    @default("pending") // pending|sent|snoozed|dismissed|clicked
+  scheduledFor DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, status])
+}

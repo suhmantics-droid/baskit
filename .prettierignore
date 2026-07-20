@@ -1,0 +1,7 @@
+.next
+node_modules
+package-lock.json
+prototype
+docs
+public
+lib/generated

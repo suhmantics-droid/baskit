@@ -1,0 +1,10 @@
+# Never upload local secrets/config to Vercel — production env vars are set in
+# the Vercel project (vercel env). Without this, the CLI uploads .env because
+# this folder is not a git repo, and the build bakes in localhost AUTH_URL.
+.env
+.env.local
+.env*.local
+node_modules
+.next
+tsconfig.tsbuildinfo
+deploy-prototype
