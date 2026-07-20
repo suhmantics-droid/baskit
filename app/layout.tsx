@@ -14,6 +14,12 @@ export const metadata: Metadata = {
   title: "Baskit — everything you want, in one place",
   description:
     "A universal wishlist with nested budgets, a buy/wait decision engine, and price tracking.",
+  openGraph: {
+    title: "Baskit — decide better, buy intentional",
+    description: "Your record. Your budget. The right time to buy.",
+    images: ["/og.png"],
+  },
+  twitter: { card: "summary_large_image", images: ["/og.png"] },
 };
 
 /** Applies the saved theme before first paint so dark mode never flashes. */
