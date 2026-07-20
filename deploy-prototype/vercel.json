@@ -1,5 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "mkdir -p out && { cp -r index.html privacy.html terms.html og.png apple-touch-icon.png demo out/ 2>/dev/null || cp -r deploy-prototype/index.html deploy-prototype/privacy.html deploy-prototype/terms.html deploy-prototype/og.png deploy-prototype/apple-touch-icon.png deploy-prototype/demo out/; }",
-  "outputDirectory": "out"
-}
