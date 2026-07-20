@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Baskit in 30 seconds</title>
+<meta property="og:title" content="Baskit in 30 seconds" />
+<meta property="og:description" content="Watch the wishlist that does budgets and buy-or-wait verdicts." />
+<meta property="og:image" content="https://baskit.suhmantics.com/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%20fill='none'%3E%3Cpath%20d='M20%206v36'%20stroke='%231e2a4a'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='33'%20cy='29.5'%20r='13'%20stroke='%231e2a4a'%20stroke-width='6'/%3E%3Cpath%20d='M9.5%2040H14l6%2016.5a5%205%200%200%200%204.8%203.5h14.4a5%205%200%200%200%204.8-3.5L50%2040h4.5'%20stroke='%233fbf9f'%20stroke-width='5.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3Cpath%20d='M26.5%2049.5h11'%20stroke='%233fbf9f'%20stroke-width='5.5'%20stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root { --bg:#0e0d0b; --ink:#f4f1ea; --soft:#b0aaa0; --teal:#3fbf9f; --line:#2a2723; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif; }
+  .stage { position:fixed; inset:0; display:flex; flex-direction:column; }
+  .bars { display:flex; gap:5px; padding:14px 16px 10px; }
+  .bar { flex:1; height:3px; border-radius:99px; background:var(--line); overflow:hidden; }
+  .bar > span { display:block; height:100%; width:0%; background:var(--teal); }
+  .bar.done > span { width:100%; }
+  .frame { position:relative; flex:1; margin:0 16px; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#000; }
+  .frame img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity .5s ease; }
+  .frame img.on { opacity:1; }
+  @media (prefers-reduced-motion: no-preference) {
+    .frame img.on { animation: kb 4.2s ease-out forwards; }
+    @keyframes kb { from { transform: scale(1); } to { transform: scale(1.025); } }
+  }
+  .cta { position:absolute; inset:0; display:none; place-items:center; text-align:center; padding:24px; }
+  .cta.on { display:grid; }
+  .cta .mark { font-size:54px; margin-bottom:6px; }
+  .cta h2 { font-size:clamp(22px,4.5vw,34px); margin:0 0 6px; letter-spacing:-0.02em; }
+  .cta p { color:var(--soft); margin:0 0 18px; font-size:15px; }
+  .cta a.go { display:inline-block; background:var(--ink); color:#16130f; text-decoration:none; padding:12px 22px; border-radius:12px; font-weight:600; }
+  .cap { padding:14px 18px 8px; text-align:center; min-height:58px; }
+  .cap b { font-size:15.5px; letter-spacing:-0.01em; }
+  .cap span { display:block; color:var(--soft); font-size:12.5px; margin-top:2px; }
+  .row { display:flex; align-items:center; justify-content:center; gap:14px; padding:0 16px 16px; font-size:12.5px; color:var(--soft); flex-wrap:wrap; }
+  .row button { background:none; border:1px solid var(--line); color:var(--ink); border-radius:99px; padding:7px 13px; font-size:12.5px; cursor:pointer; }
+  .row button:hover { border-color:var(--teal); }
+  .row a { color:var(--soft); }
+  .tap { position:absolute; inset:0; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="bars" id="bars"></div>
+  <div class="frame" id="frame">
+    <img src="f1-dashboard.png" alt="Baskit dashboard with stats and items" />
+    <img src="f2-plan.png" alt="Monthly plan bar and ready-to-buy list" />
+    <img src="f3-spendmap.png" alt="Spend map donut and segments" />
+    <img src="f4-grid.png" alt="Item cards with buy or wait verdicts" />
+    <img src="f5-detail.png" alt="Item detail with score ring and price history" />
+    <img src="f6-purchases.png" alt="Purchases ledger" />
+    <div class="cta" id="cta">
+      <div>
+        <div class="mark">🧺</div>
+        <h2>Decide better. Buy intentional.</h2>
+        <p>Your record. Your budget. The right time to buy.</p>
+        <a class="go" href="https://baskit.suhmantics.com">Try Baskit free</a>
+      </div>
+    </div>
+    <div class="tap" id="tap" title="Tap to skip"></div>
+  </div>
+  <div class="cap" id="cap"></div>
+  <div class="row">
+    <button id="prev">← Back</button>
+    <button id="pause">Pause</button>
+    <button id="next">Next →</button>
+    <a href="baskit-demo.webm" download>Download the raw screen recording</a>
+  </div>
+</div>
+<script>
+(function(){
+  var caps=[
+    ["Meet your basket","Everything you want in one place, with a plan attached"],
+    ["The month in one bar","Spent, planned, budget. It says £176 short before you overspend"],
+    ["The spend map","See where your money is headed across segments"],
+    ["Verdicts, not vibes","Every item gets a buy or wait score with reasons"],
+    ["Open anything","Score ring, reasons, price history and cool-offs"],
+    ["Your record","Purchases become a ledger, with savings from waiting"],
+    ["That is Baskit","Free in the browser, nothing to install"]
+  ];
+  var DUR=3800, n=7, i=-1, playing=true, timer=null, raf=null, started=0, elapsed=0;
+  var imgs=document.querySelectorAll("#frame img");
+  var bars=document.getElementById("bars");
+  for(var b=0;b<n;b++){ var d=document.createElement("div"); d.className="bar"; d.innerHTML="<span></span>"; bars.appendChild(d); }
+  var barEls=bars.children;
+  function show(k){
+    i=(k+n)%n;
+    for(var x=0;x<imgs.length;x++) imgs[x].classList.toggle("on", x===i);
+    document.getElementById("cta").classList.toggle("on", i===n-1);
+    for(var y=0;y<n;y++){ barEls[y].classList.toggle("done", y<i); if(y>=i) barEls[y].firstChild.style.width= y===i? "0%":"0%"; }
+    document.getElementById("cap").innerHTML="<b>"+caps[i][0]+"</b><span>"+caps[i][1]+"</span>";
+    elapsed=0; started=performance.now();
+    tick();
+  }
+  function tick(){
+    if(raf) cancelAnimationFrame(raf);
+    function step(){
+      if(playing){
+        var p=Math.min(1,(elapsed+(performance.now()-started))/DUR);
+        barEls[i].firstChild.style.width=(p*100)+"%";
+        if(p>=1){ show(i+1); return; }
+      }
+      raf=requestAnimationFrame(step);
+    }
+    raf=requestAnimationFrame(step);
+  }
+  function pauseToggle(){
+    if(playing){ elapsed+=performance.now()-started; playing=false; document.getElementById("pause").textContent="Play"; }
+    else { started=performance.now(); playing=true; document.getElementById("pause").textContent="Pause"; }
+  }
+  document.getElementById("tap").onclick=function(){ show(i+1); };
+  document.getElementById("next").onclick=function(){ show(i+1); };
+  document.getElementById("prev").onclick=function(){ show(i-1); };
+  document.getElementById("pause").onclick=pauseToggle;
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowRight") show(i+1); if(e.key==="ArrowLeft") show(i-1); if(e.key===" "){ e.preventDefault(); pauseToggle(); } });
+  show(0);
+})();
+</script>
+</body>
+</html>
