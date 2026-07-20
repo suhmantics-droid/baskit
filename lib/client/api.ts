@@ -40,6 +40,7 @@ export interface WireListNode {
   cap: number | null;
   dueDate: string | null;
   createdAt: string;
+  shareToken: string | null;
   spent: number;
   bought: number;
   itemCount: number;
@@ -124,4 +125,9 @@ export const api = {
   patchList: (id: string, body: unknown) =>
     request<{ list: WireListNode }>(`/api/lists/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   deleteList: (id: string) => request<{ ok: true }>(`/api/lists/${id}`, { method: "DELETE" }),
+  shareList: (id: string, enabled: boolean) =>
+    request<{ shareToken: string | null }>(`/api/lists/${id}/share`, {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    }),
 };

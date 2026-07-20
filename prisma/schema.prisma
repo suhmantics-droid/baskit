@@ -69,11 +69,13 @@ model VerificationToken {
 }
 
 model List {
-  id        String     @id @default(cuid())
-  ownerId   String
-  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  name      String
-  emoji     String     @default("🗂")
+  id         String    @id @default(cuid())
+  ownerId    String
+  owner      User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name       String
+  emoji      String    @default("🗂")
+  /** Public share link token (E5-1); null = not shared. Viewers need no account. */
+  shareToken String?   @unique
   parentId  String?
   parent    List?      @relation("Nesting", fields: [parentId], references: [id])
   children  List[]     @relation("Nesting")
@@ -163,13 +165,14 @@ model ListMember {
 }
 
 model Reservation {
-  // gift reservation (hidden from list owner)
+  // gift reservation (hidden from list owner). One reservation per item.
+  // Reservers on shared links need no account: reservedById stays null and
+  // reserverName carries what they typed.
   id           String   @id @default(cuid())
-  itemId       String
-  reservedById String
+  itemId       String   @unique
+  reservedById String?
+  reserverName String?
   createdAt    DateTime @default(now())
-
-  @@unique([itemId, reservedById])
 }
 
 model Moment {

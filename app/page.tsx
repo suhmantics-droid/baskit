@@ -26,10 +26,10 @@ export default async function Home() {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
         <svg width="24" height="24" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-          <path d="M21 7v33" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-          <circle cx="33" cy="30" r="12.5" stroke="currentColor" strokeWidth="6" />
-          <path d="M13.5 39.5 19 58a4.5 4.5 0 0 0 4.4 3.3h17.2a4.5 4.5 0 0 0 4.4-3.3l5.5-18.5" stroke="#3fbf9f" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M26.5 50h11" stroke="#3fbf9f" strokeWidth="5.5" strokeLinecap="round" />
+          <path d="M20 6v36" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+          <circle cx="33" cy="29.5" r="13" stroke="currentColor" strokeWidth="6" />
+          <path d="M9.5 40H14l6 16.5a5 5 0 0 0 4.8 3.5h14.4a5 5 0 0 0 4.8-3.5L50 40h4.5" stroke="#3fbf9f" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M26.5 49.5h11" stroke="#3fbf9f" strokeWidth="5.5" strokeLinecap="round" />
         </svg>
         <span style={{ fontWeight: 600, fontSize: 20, letterSpacing: "-0.02em" }}>baskit</span>
         <span

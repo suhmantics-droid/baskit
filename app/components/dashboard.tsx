@@ -106,6 +106,33 @@ export function Dashboard({ user }: DashboardProps) {
     }
   }, [showToast]);
 
+  const handleShare = useCallback(
+    async (node: WireListNode) => {
+      try {
+        if (node.shareToken) {
+          const link = `${window.location.origin}/s/${node.shareToken}`;
+          await navigator.clipboard.writeText(link).catch(() => {});
+          if (confirm(`Share link copied:\n${link}\n\nStop sharing instead? (OK stops, Cancel keeps sharing)`)) {
+            await api.shareList(node.id, false);
+            await refreshData();
+            showToast("Sharing stopped, the link is dead");
+          } else {
+            showToast("Link copied");
+          }
+        } else {
+          const res = await api.shareList(node.id, true);
+          const link = `${window.location.origin}/s/${res.shareToken}`;
+          await navigator.clipboard.writeText(link).catch(() => {});
+          await refreshData();
+          showToast("Sharing on, link copied");
+        }
+      } catch {
+        showToast("Couldn't change sharing");
+      }
+    },
+    [refreshData, showToast],
+  );
+
   const domainLists: List[] = useMemo(() => (lists ?? []).map(wireToDomainList), [lists]);
   const listNames = useMemo(() => {
     const m = new Map<string, { name: string; emoji: string }>();
@@ -133,6 +160,21 @@ export function Dashboard({ user }: DashboardProps) {
     if (scope === "all" || scope === "__fav" || scope === "__bought") return scope;
     return lists == null || lists.some((l) => l.id === scope) ? scope : "all";
   }, [scope, lists]);
+
+  /** Current list node + breadcrumb chain, when a real list is scoped. */
+  const listView = useMemo(() => {
+    if (view === "all" || view === "__fav" || view === "__bought" || !lists) return null;
+    const node = lists.find((l) => l.id === view);
+    if (!node) return null;
+    const chain: WireListNode[] = [];
+    let cur: WireListNode | undefined = node;
+    while (cur) {
+      chain.unshift(cur);
+      const parentId: string | null = cur.parentId;
+      cur = parentId ? lists.find((l) => l.id === parentId) : undefined;
+    }
+    return { node, chain };
+  }, [view, lists]);
 
   const scopedBase = useMemo(() => {
     const all = items ?? [];
@@ -266,10 +308,10 @@ export function Dashboard({ user }: DashboardProps) {
           </button>
           <div className="logo">
             <svg width="22" height="22" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-              <path d="M21 7v33" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-              <circle cx="33" cy="30" r="12.5" stroke="currentColor" strokeWidth="6" />
-              <path d="M13.5 39.5 19 58a4.5 4.5 0 0 0 4.4 3.3h17.2a4.5 4.5 0 0 0 4.4-3.3l5.5-18.5" stroke="#3fbf9f" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M26.5 50h11" stroke="#3fbf9f" strokeWidth="5.5" strokeLinecap="round" />
+              <path d="M20 6v36" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+              <circle cx="33" cy="29.5" r="13" stroke="currentColor" strokeWidth="6" />
+              <path d="M9.5 40H14l6 16.5a5 5 0 0 0 4.8 3.5h14.4a5 5 0 0 0 4.8-3.5L50 40h4.5" stroke="#3fbf9f" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M26.5 49.5h11" stroke="#3fbf9f" strokeWidth="5.5" strokeLinecap="round" />
             </svg>{" "}
             baskit <span className="beta">beta</span>
           </div>
@@ -428,29 +470,20 @@ export function Dashboard({ user }: DashboardProps) {
             </div>
           )}
 
-          {view !== "all" && view !== "__fav" && view !== "__bought" && (() => {
-            const node = (lists ?? []).find((l) => l.id === view);
-            if (!node) return null;
-            const chain: WireListNode[] = [];
-            let cur: WireListNode | undefined = node;
-            while (cur) {
-              chain.unshift(cur);
-              cur = cur.parentId ? (lists ?? []).find((l) => l.id === cur!.parentId) : undefined;
-            }
-            return (
-              <ListHeader
-                node={node}
-                chain={chain}
-                domainLists={domainLists}
-                items={items ?? []}
-                now={now}
-                onGo={(s) => setScope(s)}
-                onAddItem={() => setModal(null)}
-                onAddSub={() => setListModal({ list: null, parentId: node.id })}
-                onEdit={() => setListModal({ list: node, parentId: null })}
-              />
-            );
-          })()}
+          {listView && (
+            <ListHeader
+              node={listView.node}
+              chain={listView.chain}
+              domainLists={domainLists}
+              items={items ?? []}
+              now={now}
+              onGo={(s) => setScope(s)}
+              onAddItem={() => setModal(null)}
+              onAddSub={() => setListModal({ list: null, parentId: listView.node.id })}
+              onEdit={() => setListModal({ list: listView.node, parentId: null })}
+              onShare={() => handleShare(listView.node)}
+            />
+          )}
 
           {view === "all" && (
           <div className="stats">

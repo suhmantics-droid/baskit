@@ -28,9 +28,10 @@ export interface ListHeaderProps {
   onAddItem: () => void;
   onAddSub: () => void;
   onEdit: () => void;
+  onShare: () => void;
 }
 
-export function ListHeader({ node, chain, domainLists, items, now, onGo, onAddItem, onAddSub, onEdit }: ListHeaderProps) {
+export function ListHeader({ node, chain, domainLists, items, now, onGo, onAddItem, onAddSub, onEdit, onShare }: ListHeaderProps) {
   const spent = node.spent;
   const cap = node.cap;
   const pal = palette();
@@ -65,6 +66,9 @@ export function ListHeader({ node, chain, domainLists, items, now, onGo, onAddIt
             ) : (
               <span className="okpill">✓ {formatMoney(cap - spent)} left</span>
             ))}
+          <button className="btn ghost sm" onClick={onShare} title="Share this list by link, no account needed to view">
+            {node.shareToken ? "🔗 Shared" : "🔗 Share"}
+          </button>
           <button className="btn ghost sm" onClick={onAddSub}>
             ＋ Sub-list
           </button>

@@ -32,6 +32,7 @@ export async function GET() {
         cap: row.cap,
         dueDate: row.dueDate,
         createdAt: row.createdAt,
+        shareToken: row.shareToken,
         spent,
         bought: listBought(lists, items, row.id),
         itemCount: itemsInSubtree(lists, items, row.id).length,
