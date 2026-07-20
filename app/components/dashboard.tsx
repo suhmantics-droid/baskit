@@ -12,9 +12,13 @@ import { scoreItem, type Decision } from "@/lib/decision";
 import { firstPrice, latestPrice } from "@/lib/items";
 import { formatMoney, daysBetween } from "@/lib/format";
 import type { Item, List } from "@/lib/types";
+import { subtreeIds } from "@/lib/budget";
 import { ItemCard } from "./item-card";
 import { ItemModal } from "./item-modal";
 import { DetailPanel } from "./detail-panel";
+import { Sidebar, type Scope } from "./sidebar";
+import { ListModal } from "./list-modal";
+import { ListHeader } from "./list-header";
 
 type StatusFilter = "all" | "want" | "later" | "research" | "ready";
 type SortKey = "score" | "recent" | "priceHigh" | "priceLow" | "priority" | "cooldown" | "drop";
@@ -41,6 +45,10 @@ export function Dashboard({ user }: DashboardProps) {
   /** undefined = closed, null = adding, Item = editing that item. */
   const [modal, setModal] = useState<Item | null | undefined>(undefined);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [scope, setScope] = useState<Scope>("all");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  /** undefined = closed; otherwise create (list null) or edit under a parent. */
+  const [listModal, setListModal] = useState<{ list: WireListNode | null; parentId: string | null } | undefined>(undefined);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const now = PAGE_LOADED_AT;
@@ -75,6 +83,8 @@ export function Dashboard({ user }: DashboardProps) {
       if (e.key === "Escape") {
         setModal(undefined);
         setDetailId(null);
+        setListModal(undefined);
+        setSidebarOpen(false);
       }
     };
     document.addEventListener("keydown", esc);
@@ -116,8 +126,23 @@ export function Dashboard({ user }: DashboardProps) {
     return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [items]);
 
+  /** Effective view: a scoped list can vanish (deleted) — fall back to All without state churn. */
+  const view: Scope = useMemo(() => {
+    if (scope === "all" || scope === "__fav" || scope === "__bought") return scope;
+    return lists == null || lists.some((l) => l.id === scope) ? scope : "all";
+  }, [scope, lists]);
+
+  const scopedBase = useMemo(() => {
+    const all = items ?? [];
+    if (view === "all") return all;
+    if (view === "__fav") return all.filter((i) => i.fav);
+    if (view === "__bought") return all.filter((i) => i.bought);
+    const inSubtree = new Set(subtreeIds(domainLists, view));
+    return all.filter((i) => i.lists.some((id) => inSubtree.has(id)));
+  }, [items, view, domainLists]);
+
   const visible = useMemo(() => {
-    let list = [...(items ?? [])];
+    let list = [...scopedBase];
     const query = q.trim().toLowerCase();
     list = list.filter((it) => {
       if (status === "ready") {
@@ -154,10 +179,10 @@ export function Dashboard({ user }: DashboardProps) {
       }
     });
     return list;
-  }, [items, status, cat, sort, q, now, decisions, listNames]);
+  }, [scopedBase, status, cat, sort, q, now, decisions, listNames]);
 
   const counts = useMemo(() => {
-    const all = items ?? [];
+    const all = scopedBase;
     const c = (s: string) => all.filter((i) => i.status === s).length;
     return {
       all: all.length,
@@ -166,7 +191,7 @@ export function Dashboard({ user }: DashboardProps) {
       research: c("research"),
       ready: all.filter((i) => isReady(i, now)).length,
     };
-  }, [items, now]);
+  }, [scopedBase, now]);
 
   const stats = useMemo(() => {
     const all = items ?? [];
@@ -232,6 +257,11 @@ export function Dashboard({ user }: DashboardProps) {
     <>
       <header className="app-header">
         <div className="bar">
+          <button className="icon-btn hamb" title="Lists" onClick={() => setSidebarOpen((v) => !v)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18M3 12h18M3 18h18" />
+            </svg>
+          </button>
           <div className="logo">
             <svg width="22" height="22" viewBox="0 0 64 64" fill="none" aria-hidden="true">
               <path d="M21 7v33" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
@@ -282,21 +312,123 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
       </header>
 
-      <div className="app no-sidebar">
+      <div className="app">
+        <Sidebar
+          lists={lists ?? []}
+          scope={scope}
+          allCount={(items ?? []).length}
+          favCount={(items ?? []).filter((i) => i.fav).length}
+          boughtCount={(items ?? []).filter((i) => i.bought).length}
+          open={sidebarOpen}
+          onSelect={(s) => {
+            setScope(s);
+            setSidebarOpen(false);
+            window.scrollTo(0, 0);
+          }}
+          onNewList={(parentId) => setListModal({ list: null, parentId })}
+          onEditList={(id) => {
+            const l = (lists ?? []).find((x) => x.id === id);
+            if (l) setListModal({ list: l, parentId: null });
+          }}
+        />
         <main className="page">
-          <div className="hero">
-            <div>
-              <h1>{user.name && user.name !== "Me" ? `${user.name}’s basket` : "Your basket"}</h1>
-              <p>Your record. Your budget. The right time to buy.</p>
+          {view === "all" && (
+            <div className="hero">
+              <div>
+                <h1>{user.name && user.name !== "Me" ? `${user.name}’s basket` : "Your basket"}</h1>
+                <p>Your record. Your budget. The right time to buy.</p>
+              </div>
+              <button className="btn" onClick={() => setModal(null)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add item
+              </button>
             </div>
-            <button className="btn" onClick={() => setModal(null)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              Add item
-            </button>
-          </div>
+          )}
 
+          {view === "__fav" && (
+            <div className="lhead">
+              <div className="crumb">
+                <a onClick={() => setScope("all")}>All items</a> <span>›</span> <span>Favourites</span>
+              </div>
+              <div className="lt">
+                <h1>
+                  <span style={{ color: "#e0426e" }}>♥</span> Favourites
+                </h1>
+                <div className="lacts">
+                  <button className="btn sm" onClick={() => setModal(null)}>
+                    ＋ Add item
+                  </button>
+                </div>
+              </div>
+              <div className="budget-wrap">
+                <div className="budget-nums">
+                  <div className="bn">
+                    <div className="k">Items</div>
+                    <div className="v">{scopedBase.length}</div>
+                  </div>
+                  <div className="bn">
+                    <div className="k">Total value</div>
+                    <div className="v">{formatMoney(scopedBase.reduce((s, i) => s + (latestPrice(i) ?? 0), 0))}</div>
+                  </div>
+                </div>
+                <div className="hint">Tap the ♡ on any card to keep it here — favourites get a small boost in their score.</div>
+              </div>
+            </div>
+          )}
+
+          {view === "__bought" && (
+            <div className="lhead">
+              <div className="crumb">
+                <a onClick={() => setScope("all")}>All items</a> <span>›</span> <span>Purchases</span>
+              </div>
+              <div className="lt">
+                <h1>
+                  <span>🧾</span> Purchases
+                </h1>
+              </div>
+              <div className="budget-wrap">
+                <div className="budget-nums">
+                  <div className="bn">
+                    <div className="k">Bought</div>
+                    <div className="v">{scopedBase.length}</div>
+                  </div>
+                  <div className="bn">
+                    <div className="k">Total spent</div>
+                    <div className="v">{formatMoney(scopedBase.reduce((s, i) => s + (latestPrice(i) ?? 0), 0))}</div>
+                  </div>
+                </div>
+                <div className="hint">Your record. Prices are what each item cost when you marked it bought.</div>
+              </div>
+            </div>
+          )}
+
+          {view !== "all" && view !== "__fav" && view !== "__bought" && (() => {
+            const node = (lists ?? []).find((l) => l.id === view);
+            if (!node) return null;
+            const chain: WireListNode[] = [];
+            let cur: WireListNode | undefined = node;
+            while (cur) {
+              chain.unshift(cur);
+              cur = cur.parentId ? (lists ?? []).find((l) => l.id === cur!.parentId) : undefined;
+            }
+            return (
+              <ListHeader
+                node={node}
+                chain={chain}
+                domainLists={domainLists}
+                items={items ?? []}
+                now={now}
+                onGo={(s) => setScope(s)}
+                onAddItem={() => setModal(null)}
+                onAddSub={() => setListModal({ list: null, parentId: node.id })}
+                onEdit={() => setListModal({ list: node, parentId: null })}
+              />
+            );
+          })()}
+
+          {view === "all" && (
           <div className="stats">
             <div className="stat">
               <div className="k"><span className="ki">🧺</span>Items saved</div>
@@ -319,6 +451,37 @@ export function Dashboard({ user }: DashboardProps) {
               <div className="s">{stats.capped ? (stats.over ? "trim these" : "all within budget") : "no caps set"}</div>
             </div>
           </div>
+          )}
+
+          {view !== "all" && view !== "__fav" && view !== "__bought" && (
+            <div className="sublists">
+              {(lists ?? [])
+                .filter((l) => l.parentId === view)
+                .map((c) => (
+                  <div key={c.id} className="lcard" onClick={() => setScope(c.id)}>
+                    <div className="lc-t">
+                      <span>{c.emoji}</span> {c.name}
+                    </div>
+                    <div className="lc-s">
+                      {c.itemCount} item{c.itemCount === 1 ? "" : "s"}
+                    </div>
+                    {c.cap != null ? (
+                      <div className={`side-cap cap-${c.capState}`}>
+                        <div className="capbar">
+                          <span style={{ width: `${Math.min(100, (c.spent / c.cap) * 100).toFixed(0)}%` }} />
+                        </div>
+                        <div className="lbl">
+                          <span>{formatMoney(c.spent)}</span>
+                          <span>{c.spent > c.cap ? `+${formatMoney(c.spent - c.cap)} over` : `of ${formatMoney(c.cap)}`}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="lc-s">{formatMoney(c.spent)} · no cap</div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          )}
 
           <div className="toolbar">
             <div className="chips">
@@ -403,9 +566,24 @@ export function Dashboard({ user }: DashboardProps) {
           item={modal}
           lists={lists ?? []}
           categories={categories.map(([c]) => c)}
+          defaultListId={view !== "all" && view !== "__fav" && view !== "__bought" ? scope : null}
           onClose={() => setModal(undefined)}
           onSaved={refreshData}
           onDeleted={refreshData}
+          showToast={showToast}
+        />
+      )}
+      {listModal !== undefined && (
+        <ListModal
+          key={listModal.list?.id ?? `new-${listModal.parentId ?? "root"}`}
+          list={listModal.list}
+          parentId={listModal.parentId}
+          lists={lists ?? []}
+          onClose={() => setListModal(undefined)}
+          onSaved={(selectId) => {
+            refreshData();
+            if (selectId) setScope(selectId);
+          }}
           showToast={showToast}
         />
       )}

@@ -80,6 +80,24 @@ main.page { padding: 22px 24px 90px; min-width: 0; }
 .stat .v { font-family: var(--font-display, Georgia), Georgia, serif; font-size: 24px; font-weight: 600; letter-spacing: 0; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .stat .s { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
+/* list header + sub-list cards (ported with E2-4) */
+.lhead { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 18px; }
+.lhead .crumb { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lhead .crumb a { cursor: pointer; text-decoration: none; color: inherit; }
+.lhead .crumb a:hover { color: var(--ink); text-decoration: underline; }
+.lhead .lt { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+.lhead h1 { font-family: var(--font-display, Georgia), Georgia, serif; font-size: 27px; letter-spacing: -0.01em; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.lhead .due { font-size: 13px; color: var(--ink-soft); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.lhead .lacts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.budget-wrap { margin-top: 16px; }
+.overpill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--bad); background: var(--bad-bg); padding: 3px 9px; border-radius: 999px; }
+.okpill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--good); background: var(--good-bg); padding: 3px 9px; border-radius: 999px; }
+.sublists { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.lcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 15px; cursor: pointer; transition: box-shadow 0.16s, transform 0.16s, border-color 0.16s; }
+.lcard:hover { box-shadow: var(--shadow); transform: translateY(-2px); border-color: var(--line-strong); }
+.lcard .lc-t { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
+.lcard .lc-s { font-size: 12px; color: var(--ink-soft); margin: 4px 0 10px; }
+
 /* toolbar */
 .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 .chips { display: flex; gap: 7px; flex-wrap: wrap; }
