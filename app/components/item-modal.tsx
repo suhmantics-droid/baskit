@@ -26,6 +26,31 @@ interface MicrolinkMeta {
   priceMajor: number | null;
 }
 
+interface OwnExtract {
+  priceMinor: number;
+  currency: string;
+  name: string | null;
+  imageUrl: string | null;
+  availability: "in" | "out" | null;
+  confidence: "high" | "low";
+}
+
+/** Baskit's own server-side ladder (E3-2) — null means fall back to microlink. */
+async function fetchOwnExtract(url: string): Promise<OwnExtract | null> {
+  try {
+    const res = await fetch("/api/extract", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (!res.ok) return null;
+    const j = (await res.json()) as { ok: boolean; extracted: OwnExtract | null };
+    return j.ok ? j.extracted : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchLinkMeta(url: string): Promise<MicrolinkMeta> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 9000);
@@ -106,6 +131,24 @@ export function ItemModal({ item, lists, categories, defaultListId, onClose, onS
     }
     setFetching(true);
     try {
+      // Our own extractor first: structured data + retailer adapters, server-side.
+      const own = await fetchOwnExtract(u);
+      if (own) {
+        if (own.name && !name) setName(own.name);
+        if (own.imageUrl && !img) setImg(own.imageUrl);
+        if (!price) {
+          setPrice(String(fromMinorUnits(own.priceMinor, own.currency)));
+          setCurrency(own.currency);
+        }
+        if (own.availability) setStock(own.availability);
+        showToast(
+          own.confidence === "low"
+            ? "Best guess from the page — double-check the price"
+            : "Pulled details straight from the store",
+        );
+        return;
+      }
+      // Microlink fallback — its headless renderer can read JS-only pages.
       const m = await fetchLinkMeta(u);
       if (m.title && !name) setName(m.title);
       if (m.img && !img) setImg(m.img);
