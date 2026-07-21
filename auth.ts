@@ -34,6 +34,8 @@ const providers: NextAuthConfig["providers"] = [
         body: JSON.stringify({
           from: provider.from,
           to: [identifier],
+          // The branded sender is send-only (no inbox) — replies reach a human.
+          reply_to: process.env.EMAIL_REPLY_TO ?? "suhmantics@gmail.com",
           subject: "Sign in to Baskit",
           html: [
             '<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:420px;margin:0 auto;padding:32px 24px">',
