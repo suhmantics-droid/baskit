@@ -23,7 +23,7 @@ Work top-to-bottom. Each ticket is one focused session. Tick the box when types 
 - [ ] **E2-7** PWA manifest + service worker + **share target** route (pre-fills add). _(Competitor research 2026-07-20: one-click capture is the lead feature for Karma/Moonsift/GiftList — extension + share-sheet is table stakes; prototype now surfaces the bookmarklet as "Save from any store" in the hero.)_
 
 ## Epic 3 — Price pipeline — `docs/05`
-- [ ] **E3-1** `scripts/extract-spike.ts` (50 URLs) + coverage report. *(Do in Phase 0.)*
+- [x] **E3-1** `scripts/extract-spike.ts` (50 URLs) + coverage report. _(2026-07-21: 40 URLs / 13 domains — 53% confident via JSON-LD alone, OG/microdata added 0; Amazon+ASOS need adapters (fetchable); LEGO/Argos/Currys/Boots need headless; Next hostile even to a real browser. Full tiering in `docs/spike/E3-1-findings.md`.)_
 - [ ] **E3-2** `lib/extract` orchestrator + JSON-LD + OG + microdata parsers + `price.ts`; `/api/extract`.
 - [ ] **E3-3** Headless fallback (Playwright), rate-limited; adapter interface + 2–3 real retailer adapters from spike findings.
 - [ ] **E3-4** `/api/items/:id/price-check` + client "check now"; PricePoint history endpoint + detail chart.
