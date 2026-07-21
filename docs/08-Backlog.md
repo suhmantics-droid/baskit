@@ -24,9 +24,9 @@ Work top-to-bottom. Each ticket is one focused session. Tick the box when types 
 
 ## Epic 3 — Price pipeline — `docs/05`
 - [x] **E3-1** `scripts/extract-spike.ts` (50 URLs) + coverage report. _(2026-07-21: 40 URLs / 13 domains — 53% confident via JSON-LD alone, OG/microdata added 0; Amazon+ASOS need adapters (fetchable); LEGO/Argos/Currys/Boots need headless; Next hostile even to a real browser. Full tiering in `docs/spike/E3-1-findings.md`.)_
-- [ ] **E3-2** `lib/extract` orchestrator + JSON-LD + OG + microdata parsers + `price.ts`; `/api/extract`.
-- [ ] **E3-3** Headless fallback (Playwright), rate-limited; adapter interface + 2–3 real retailer adapters from spike findings.
-- [ ] **E3-4** `/api/items/:id/price-check` + client "check now"; PricePoint history endpoint + detail chart.
+- [x] **E3-2** `lib/extract` orchestrator + JSON-LD + OG + microdata parsers + `price.ts`; `/api/extract`. _(2026-07-21: ladder + Amazon/ASOS adapters (verified on live pages), GBP default for .uk, block detection; `/api/extract` pre-fills the add-item modal with microlink demoted to JS-page fallback.)_
+- [ ] **E3-3** Headless fallback (Playwright), rate-limited; adapter interface + more retailer adapters from spike findings. _(Deprioritised behind cron+alerts per Sagar's order; Tier C = LEGO/Argos/Currys/Boots.)_
+- [x] **E3-4** `/api/items/:id/price-check` + client "check now"; PricePoint history endpoint + detail chart. _(2026-07-21: endpoint logs PricePoint only on real change, refreshes lastCheckedAt/stock; "Check price now" button in the detail panel with blocked-store messaging. History+chart existed since E2-5.)_
 - [ ] **E3-5** `/api/cron/price-check` (tiered selection, batched, `CRON_SECRET`); wire Cloudflare Workers cron (`docs/06`).
 - [ ] **E3-6** `/api/cron/scan-sales` + `SaleSignal` + sale badges/banner (port `SALE_PATS`).
 

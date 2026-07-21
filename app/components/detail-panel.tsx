@@ -96,6 +96,7 @@ export interface DetailPanelProps {
 export function DetailPanel({ itemId, budget, listNames, now, onClose, onEdit, onChanged, showToast }: DetailPanelProps) {
   const [item, setItem] = useState<Item | null>(null);
   const [version, setVersion] = useState(0);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -180,6 +181,35 @@ export function DetailPanel({ itemId, budget, listNames, now, onClose, onEdit, o
       showToast(`Copied “${item.code}”`);
     } catch {
       showToast(item.code);
+    }
+  };
+
+  const checkNow = async () => {
+    if (checking) return;
+    setChecking(true);
+    try {
+      const res = await api.priceCheck(item.id);
+      const c = res.check;
+      if (c.ok && c.priceChanged) {
+        const fresh = res.item.price;
+        const prev = c.previousPrice;
+        showToast(
+          prev != null && fresh != null && fresh < prev
+            ? `Price dropped to ${formatMoney(fresh, res.item.currency)} ↓`
+            : `Price updated to ${formatMoney(fresh, res.item.currency)}`,
+        );
+      } else if (c.ok) {
+        showToast("Checked — same price as before");
+      } else if (c.blocked) {
+        showToast("This store blocks auto-checks, so we check it less often");
+      } else {
+        showToast("Couldn't read a price from that page");
+      }
+      refresh();
+    } catch {
+      showToast("Couldn't check right now");
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -270,6 +300,16 @@ export function DetailPanel({ itemId, budget, listNames, now, onClose, onEdit, o
               <div className="hint" style={{ marginTop: 6 }}>
                 Log a price over time to build a trend line.
               </div>
+            )}
+            {item.url && (
+              <button
+                className="btn ghost sm"
+                style={{ marginTop: 10, width: "100%", justifyContent: "center" }}
+                onClick={checkNow}
+                disabled={checking}
+              >
+                {checking ? "Checking the store…" : "🔄 Check price now"}
+              </button>
             )}
           </div>
 

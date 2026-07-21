@@ -116,6 +116,19 @@ export const api = {
   patchItem: (id: string, body: unknown) =>
     request<{ item: WireItem }>(`/api/items/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   deleteItem: (id: string) => request<{ ok: true }>(`/api/items/${id}`, { method: "DELETE" }),
+  priceCheck: (id: string) =>
+    request<{
+      item: WireItem;
+      check: {
+        ok: boolean;
+        blocked: boolean;
+        method: string | null;
+        confidence: "high" | "low" | null;
+        priceChanged: boolean;
+        previousPrice: number | null;
+        note: string | null;
+      };
+    }>(`/api/items/${id}/price-check`, { method: "POST" }),
   patchMe: (body: unknown) =>
     request<{ user: unknown }>("/api/me", { method: "PATCH", body: JSON.stringify(body) }),
   deleteMe: () => request<{ ok: true }>("/api/me", { method: "DELETE" }),
