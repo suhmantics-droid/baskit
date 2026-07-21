@@ -363,6 +363,9 @@ export function Dashboard({ user }: DashboardProps) {
                   🗑 Delete account
                 </button>
                 <div className="sep" />
+                <a className="mi" href={`mailto:suhmantics@gmail.com?subject=${encodeURIComponent("Baskit feedback")}&body=${encodeURIComponent("One thing I would use:\n\nOne thing that annoyed me:\n\n")}`}>
+                  💬 Send feedback
+                </a>
                 <a className="mi" href="https://baskit.suhmantics.com/privacy.html" target="_blank" rel="noopener noreferrer">
                   🔒 Privacy
                 </a>

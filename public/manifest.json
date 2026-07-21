@@ -1,0 +1,10 @@
+{
+  "name": "Baskit",
+  "short_name": "Baskit",
+  "description": "Your record. Your budget. The right time to buy.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf8",
+  "theme_color": "#16130f",
+  "icons": [{ "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }]
+}
