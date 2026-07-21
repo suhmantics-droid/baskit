@@ -267,7 +267,7 @@ export function BudgetView({ items, budget, now, onGoAll, onBudgetSaved, showToa
               </span>
             </div>
             <button className="btn sm" style={{ marginTop: 10, width: "100%" }} onClick={useAsBudget}>
-              Use what&rsquo;s left as my monthly budget
+              Make this my monthly budget
             </button>
             <div className="hint" style={{ marginTop: 8 }}>
               Only the final budget number is saved to your account

@@ -342,4 +342,14 @@ select.sel { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--lin
   .search { order: 3; flex-basis: 100%; max-width: none; }
   .grid { grid-template-columns: 1fr; }
   .hero h1 { font-size: 22px; }
+  /* iOS zooms the page when a focused input is under 16px — keep fields at 16 on phones */
+  input, select, textarea { font-size: 16px; }
+  /* On phones the header can wrap, leaving dropdown anchors mid-bar — pin
+     dropdowns to the viewport instead so they can never open off-screen. */
+  .menu, .moments-pop { position: fixed; right: 8px; left: auto; top: 60px; }
+}
+@media (hover: none) {
+  /* touch screens have no hover — reveal-on-hover controls must simply be visible */
+  .side-row .tw { opacity: 0.75; padding: 6px 7px; font-size: 15px; }
+  .segcard .tw { opacity: 0.75; padding: 4px 8px; font-size: 16px; }
 }

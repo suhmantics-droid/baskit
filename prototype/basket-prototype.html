@@ -336,6 +336,16 @@
     .bar { flex-wrap: wrap; } .search { order: 3; flex-basis: 100%; max-width: none; }
     .grid { grid-template-columns: 1fr; } .row2, .row3 { grid-template-columns: 1fr; } .hero h1 { font-size: 22px; }
     .panel { width: 100%; }
+    /* iOS zooms the page when a focused input is under 16px — keep fields at 16 on phones */
+    input, select, textarea { font-size: 16px; }
+    /* On phones the header can wrap, leaving the avatar mid-bar — pin the
+       menu to the viewport instead so it can never open off-screen. */
+    .menu { position: fixed; right: 8px; left: auto; top: 60px; }
+  }
+  @media (hover: none) {
+    /* touch screens have no hover — reveal-on-hover controls must simply be visible */
+    .side-row .tw { opacity: .75; padding: 6px 7px; font-size: 15px; }
+    .segcard .tw { opacity: .75; padding: 4px 8px; font-size: 16px; }
   }
 </style>
 </head>

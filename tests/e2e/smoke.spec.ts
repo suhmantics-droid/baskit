@@ -46,6 +46,63 @@ test.describe("prototype (tester surface)", () => {
   });
 });
 
+test.describe("mobile (iPhone-size) — the primary surface", () => {
+  // Real phone conditions: 375×812, touch (activates @media (hover: none)),
+  // device-scale 3. These are the gates that caught real bugs: dropdowns
+  // anchored to a wrapped header opening off-screen, and hover-only controls.
+  test.use({
+    viewport: { width: 375, height: 812 },
+    hasTouch: true,
+    isMobile: true,
+    deviceScaleFactor: 3,
+  });
+
+  test("prototype: no sideways scroll, menu on-screen, add modal usable", async ({ page }) => {
+    await page.goto(PROTO);
+
+    // fresh visitor journey still works at phone size
+    await page.fill("#p_name", "Mobile");
+    await page.fill("#p_budget", "150");
+    await page.click("#pSave");
+    await page.click("#segSkip");
+    await page.click("#tourSkip");
+
+    // gate: no horizontal scroll
+    const hScroll = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(hScroll, "horizontal scroll on mobile").toBe(false);
+
+    // gate: avatar menu opens fully on-screen (regression: it opened off-screen
+    // when the wrapped header moved its anchor)
+    await page.click(".avatar");
+    const menu = page.locator(".menu");
+    await expect(menu).toBeVisible();
+    const box = await menu.boundingBox();
+    expect(box!.x, "menu left edge").toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width, "menu right edge").toBeLessThanOrEqual(376);
+    await page.keyboard.press("Escape");
+    await page.click("body", { position: { x: 10, y: 300 } });
+
+    // gate: add-item modal opens and its fields are 16px+ (no iOS zoom)
+    await page.click("#addBtn");
+    await expect(page.locator("#modalWrap")).toHaveClass(/open/);
+    const nameFontPx = await page
+      .locator("#f_name")
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(nameFontPx, "input font must be ≥16px on phones").toBeGreaterThanOrEqual(16);
+  });
+
+  test("app landing fits a phone", async ({ page }) => {
+    await page.goto(APP);
+    const hScroll = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(hScroll).toBe(false);
+    await expect(page.getByRole("button", { name: /Sign in/ })).toBeVisible();
+  });
+});
+
 test.describe("app (accounts)", () => {
   test("landing offers sign-in and the API refuses strangers", async ({ page, request }) => {
     await page.goto(APP);
