@@ -53,6 +53,7 @@ export function Dashboard({ user }: DashboardProps) {
   const [listModal, setListModal] = useState<{ list: WireListNode | null; parentId: string | null } | undefined>(undefined);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const now = PAGE_LOADED_AT;
 
   const showToast = useCallback((msg: string) => {
@@ -347,6 +348,13 @@ export function Dashboard({ user }: DashboardProps) {
                 <a className="mi" href="/api/me/export">
                   ⬇ Export my data
                 </a>
+                <button
+                  className="mi"
+                  style={{ width: "100%", border: "none", background: "none" }}
+                  onClick={() => importInputRef.current?.click()}
+                >
+                  ⬆ Import demo backup
+                </button>
                 <button
                   className="mi"
                   style={{ width: "100%", border: "none", background: "none", color: "var(--bad)" }}
@@ -686,6 +694,34 @@ export function Dashboard({ user }: DashboardProps) {
         />
       )}
 
+      <input
+        ref={importInputRef}
+        type="file"
+        accept="application/json"
+        style={{ display: "none" }}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          try {
+            const text = await file.text();
+            const res = await fetch("/api/import", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: text,
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              showToast("That file doesn't look like a Baskit backup");
+              return;
+            }
+            await refreshData();
+            showToast(`Imported ${data.importedItems} items and ${data.importedLists} lists — safe in your account now`);
+          } catch {
+            showToast("Couldn't read that file");
+          }
+        }}
+      />
       <div className={`toast${toast ? " show" : ""}`}>{toast}</div>
     </>
   );
