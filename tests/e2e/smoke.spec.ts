@@ -80,12 +80,23 @@ test.describe("mobile (iPhone-size) — the primary surface", () => {
     await page.click("#empSeed"); // seed samples so the cockpit actually renders
     const clipped = await page.evaluate(() => {
       const vw = window.innerWidth;
+      // Drawers and slide-in panels park off-canvas via transform until opened —
+      // that's intentional, so walk up and skip anything translated aside.
+      const parked = (el: HTMLElement): boolean => {
+        let n: HTMLElement | null = el;
+        while (n && n !== document.body) {
+          const t = getComputedStyle(n).transform;
+          if (t && t !== "none" && Math.abs(new DOMMatrix(t).e) > 20) return true;
+          n = n.parentElement;
+        }
+        return false;
+      };
       return Array.from(document.body.querySelectorAll<HTMLElement>("*"))
         .filter((el) => {
           const cs = getComputedStyle(el);
           if (cs.display === "none" || cs.visibility === "hidden") return false;
           const r = el.getBoundingClientRect();
-          return r.width > 0 && r.height > 0 && r.right > vw + 1;
+          return r.width > 0 && r.height > 0 && r.right > vw + 1 && !parked(el);
         })
         .slice(0, 5)
         .map((el) => `${el.tagName.toLowerCase()}.${el.className} → ${Math.round(el.getBoundingClientRect().right)}px`);
