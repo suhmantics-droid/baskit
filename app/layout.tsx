@@ -25,6 +25,9 @@ export const metadata: Metadata = {
 /** Applies the saved theme before first paint so dark mode never flashes. */
 const themeInit = `try{var t=localStorage.getItem("baskit.theme");if(t){document.documentElement.setAttribute("data-theme",t)}}catch(e){}`;
 
+/** Registers the service worker (PWA share sheet + push) after load. */
+const swInit = `if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})})}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -38,6 +41,7 @@ export default function RootLayout({
       <body className="min-h-full">
         {children}
         <Analytics />
+        <script dangerouslySetInnerHTML={{ __html: swInit }} />
       </body>
     </html>
   );
