@@ -479,6 +479,22 @@
   </div>
 </div>
 
+<!-- My money modal -->
+<div class="modal-wrap" id="moneyWrap">
+  <div class="modal" style="max-width:460px">
+    <div class="mhead"><h2>💷 My money</h2><div style="display:flex; gap:6px; align-items:center"><button class="icon-btn" id="moneyEye" title="Hide or show the numbers" style="width:32px;height:32px">👁</button><button class="close" id="moneyClose">&times;</button></div></div>
+    <div class="mbody">
+      <p class="hint" style="margin:0">Stays in this browser only. Never uploaded — nobody else can see it, including us.</p>
+      <div class="field"><label>Monthly income (after tax)</label><input id="m_income" type="number" step="0.01" placeholder="e.g. 2200" /></div>
+      <div class="field"><label>Monthly outgoings</label><div id="moneyOuts"></div>
+        <div class="lp-add"><input id="mo_name" placeholder="e.g. Rent" /><input id="mo_amt" type="number" step="0.01" placeholder="850" style="max-width:110px" /><button class="btn ghost sm" id="mo_add">Add</button></div>
+      </div>
+      <div class="chartbox" id="moneySummary"></div>
+    </div>
+    <div class="mfoot"><span class="hint" id="moneyHint"></span><div style="display:flex; gap:10px"><button class="btn ghost" id="moneyCancel">Close</button><button class="btn" id="moneyUse">Use as wants budget</button></div></div>
+  </div>
+</div>
+
 <!-- First-run tour -->
 <div class="modal-wrap" id="tourWrap">
   <div class="modal" style="max-width:400px">
@@ -605,6 +621,7 @@
     mi(m,(db.settings.autoCheck===false?"○":"◉")+" Auto price-check weekly",function(){ db.settings.autoCheck=(db.settings.autoCheck===false); save(); toast(db.settings.autoCheck?"Auto price-check on — runs when you open Baskit":"Auto price-check off"); });
     sep(m);
     mi(m,'☁️ Get accounts (beta) — basket on every device',function(){ window.open("https://baskit-app-eta.vercel.app","_blank"); });
+    mi(m,'💷 My money — income, outgoings, what\'s left',function(){ openMoney(); });
     mi(m,'📋 Copy basket as text',function(){ copyAsText(null); });
     mi(m,'💬 Send feedback',function(){ sendFeedback(); });
     mi(m,'❓ Quick tour',function(){ openTour(); });
@@ -859,6 +876,37 @@
   $("segSkip").onclick=function(){ closeWrap("segWrap"); maybeTour(); };
   $("segClose").onclick=function(){ closeWrap("segWrap"); };
 
+  // ---------- my money (device-only: never synced, maskable) ----------
+  function moneyOf(){ var p=currentProfile(); p.money=p.money||{ income:null, outs:[], hidden:true }; return p.money; }
+  function moneyLeft(m){ var outs=m.outs.reduce(function(s,o){ return s+(Number(o.a)||0); },0); return (Number(m.income)||0)-outs; }
+  function maskMoney(v){ return moneyOf().hidden ? "•••••" : money(v); }
+  function openMoney(){
+    var m=moneyOf();
+    m.hidden=true; save(); // privacy: ALWAYS open masked; the eye reveals for this visit only
+    $("m_income").value=m.income!=null?m.income:"";
+    renderMoney();
+    openWrap("moneyWrap");
+  }
+  function renderMoney(){
+    var m=moneyOf();
+    $("moneyEye").textContent=m.hidden?"🙈":"👁";
+    $("m_income").type=m.hidden?"password":"number";
+    var box=$("moneyOuts");
+    box.innerHTML=m.outs.map(function(o,i){ return '<div class="lp-row" style="justify-content:space-between"><span>'+esc(o.n)+'</span><span style="display:flex;gap:8px;align-items:center"><b class="mono">'+(m.hidden?"•••••":money(o.a))+'</b><button class="del" data-mo="'+i+'" style="padding:0 4px">✕</button></span></div>'; }).join("")||'<div class="hint" style="padding:4px 2px">Add rent, bills, subscriptions — the fixed stuff.</div>';
+    Array.prototype.forEach.call(box.querySelectorAll("[data-mo]"),function(b){ b.onclick=function(){ m.outs.splice(parseInt(b.getAttribute("data-mo"),10),1); save(); renderMoney(); }; });
+    var left=moneyLeft(m); var outsTotal=m.outs.reduce(function(s,o){return s+(Number(o.a)||0);},0);
+    $("moneySummary").innerHTML='<div class="budget-nums" style="margin:0"><div class="bn"><div class="k">Income</div><div class="v">'+(m.hidden?"•••••":money(m.income||0))+'</div></div><div class="bn"><div class="k">Outgoings</div><div class="v">'+(m.hidden?"•••••":money(outsTotal))+'</div></div><div class="bn"><div class="k">Left over</div><div class="v '+(left>=0?"ok":"over")+'">'+(m.hidden?"•••••":money(left))+'</div></div></div>';
+    $("moneyHint").textContent=left>0&&!m.hidden?("Tip: keep some of the "+money(left)+" for savings"):"";
+    $("moneyUse").style.visibility=left>0?"visible":"hidden";
+  }
+  $("m_income").addEventListener("input",function(){ var m=moneyOf(); m.income=this.value===""?null:parseFloat(this.value); save(); renderMoney(); });
+  $("mo_add").onclick=function(){ var n=$("mo_name").value.trim(); var a=parseFloat($("mo_amt").value); if(!n||isNaN(a)){ toast("Name and amount, e.g. Rent 850"); return; } moneyOf().outs.push({n:n,a:a}); save(); $("mo_name").value=""; $("mo_amt").value=""; renderMoney(); };
+  $("mo_amt").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); $("mo_add").click(); } });
+  $("moneyEye").onclick=function(){ var m=moneyOf(); m.hidden=!m.hidden; save(); renderMoney(); };
+  $("moneyUse").onclick=function(){ var m=moneyOf(); var left=moneyLeft(m); if(left<=0) return; var p=currentProfile(); p.budget=Math.floor(left); save(); closeWrap("moneyWrap"); render(); toast("Wants budget set to "+money(Math.floor(left))+" — the plan is live"); };
+  $("moneyClose").onclick=function(){ closeWrap("moneyWrap"); };
+  $("moneyCancel").onclick=function(){ closeWrap("moneyWrap"); };
+
   // ---------- first-run tour ----------
   var TOUR=[
     {i:"🔖",t:"Save from any store",l:"Paste a link, hit Fetch, done. Baskit pulls the name, image and price."},
@@ -915,7 +963,7 @@
       (budget>0?'<div class="bn"><div class="k">'+(left>=0?"Budget left":"Over budget")+'</div><div class="v '+(left>=0?"ok":"over")+'">'+money(Math.abs(left))+'</div></div>':"")+
       (budget>0?'<div class="bn"><div class="k">If you buy the plan</div><div class="v '+(afterPlan>=0?"ok":"over")+'">'+(afterPlan>=0?money(afterPlan)+" spare":money(Math.abs(afterPlan))+" short")+'</div></div>':"")+
       '</div>';
-    var budgetHint=budget>0?"":'<div class="hint" style="margin-top:8px">No monthly budget set. <a href="#" id="planSetBudget" style="color:var(--accent)">Set one</a> and the plan turns into a real yes or no.</div>';
+    var budgetHint=budget>0?"":'<div class="hint" style="margin-top:8px">No monthly budget set. <a href="#" id="planSetBudget" style="color:var(--accent)">Set one</a>, or <a href="#" id="planFromMoney" style="color:var(--accent)">work it out from your income</a> — that stays on this device only.</div>';
     var legend='<div class="legend" style="margin-top:10px"><span class="lg"><span class="sw" style="background:var(--accent)"></span>Spent <b>'+money(spentMonth)+'</b></span><span class="lg"><span class="sw seg-committed" style="border:none"></span>Planned <b>'+money(committed)+'</b></span>'+(budget>0?'<span class="lg"><span class="sw" style="background:var(--ink)"></span>Budget <b>'+money(budget)+'</b></span>':"")+'</div>';
     // ready to buy
     var ready=items().map(buySignals).filter(Boolean).sort(function(a,b){ return b.d.score-a.d.score; }).slice(0,4);
@@ -924,6 +972,7 @@
     var savedPill=totalSaved>0?'<span class="savedpill">↓ '+money(totalSaved)+' saved by waiting</span>':"";
     w.innerHTML='<div class="dash-duo"><div class="chartbox"><h4>'+monthName+"’s plan"+'</h4><div class="sub">What you have spent, what is planned, and whether it fits</div>'+barHtml+legend+nums+budgetHint+'</div><div class="chartbox"><h4>Ready to buy now</h4><div class="sub">Only items whose signals say go '+savedPill+'</div>'+rows+'</div></div>';
     var sb=$("planSetBudget"); if(sb) sb.onclick=function(e){ e.preventDefault(); var b=prompt("Monthly budget for wants:",p.budget||""); if(b!==null){ p.budget=parseFloat(b)||0; save(); render(); toast("Budget set — the plan is live"); } };
+    var fm=$("planFromMoney"); if(fm) fm.onclick=function(e){ e.preventDefault(); openMoney(); };
     Array.prototype.forEach.call(w.querySelectorAll("[data-buynow]"),function(el){ el.onclick=function(){ openDetail(el.getAttribute("data-buynow")); }; });
   }
 
@@ -1282,10 +1331,10 @@
   }
 
   // modal plumbing
-  function anyModalOpen(){ return ["modalWrap","pWrap","iWrap","sWrap","lWrap","segWrap","saleWrap","tourWrap"].some(function(id){ return $(id).classList.contains("open"); })||$("panel").classList.contains("open")||$("sidebar").classList.contains("open"); }
+  function anyModalOpen(){ return ["modalWrap","pWrap","iWrap","sWrap","lWrap","segWrap","saleWrap","tourWrap","moneyWrap"].some(function(id){ return $(id).classList.contains("open"); })||$("panel").classList.contains("open")||$("sidebar").classList.contains("open"); }
   function openWrap(id){ $(id).classList.add("open"); $("overlay").classList.add("open"); }
   function closeWrap(id){ $(id).classList.remove("open"); if(!anyModalOpen()) $("overlay").classList.remove("open"); }
-  $("overlay").onclick=function(){ ["modalWrap","iWrap","sWrap","lWrap","segWrap","saleWrap"].forEach(function(id){ $(id).classList.remove("open"); }); if(db.profiles.length) $("pWrap").classList.remove("open"); $("sidebar").classList.remove("open"); closeDetail(); if(!anyModalOpen()) $("overlay").classList.remove("open"); };
+  $("overlay").onclick=function(){ ["modalWrap","iWrap","sWrap","lWrap","segWrap","saleWrap","moneyWrap"].forEach(function(id){ $(id).classList.remove("open"); }); if(db.profiles.length) $("pWrap").classList.remove("open"); $("sidebar").classList.remove("open"); closeDetail(); if(!anyModalOpen()) $("overlay").classList.remove("open"); };
 
   $("hambBtn").onclick=function(){ var sb=$("sidebar"); sb.classList.toggle("open"); if(sb.classList.contains("open")) $("overlay").classList.add("open"); else if(!anyModalOpen()) $("overlay").classList.remove("open"); };
   $("addBtnTop").onclick=function(){ openAdd(); };
@@ -1297,7 +1346,7 @@
   $("catFilter").onchange=function(){ filter.cat=this.value; render(); };
   $("sortBy").onchange=function(){ filter.sort=this.value; renderGrid(); };
   document.addEventListener("keydown",function(e){
-    if(e.key==="Escape"){ ["modalWrap","iWrap","sWrap","lWrap","segWrap","saleWrap"].forEach(function(id){ $(id).classList.remove("open"); }); if(db.profiles.length) $("pWrap").classList.remove("open"); $("sidebar").classList.remove("open"); closeDetail(); if(!anyModalOpen()) $("overlay").classList.remove("open"); }
+    if(e.key==="Escape"){ ["modalWrap","iWrap","sWrap","lWrap","segWrap","saleWrap","moneyWrap"].forEach(function(id){ $(id).classList.remove("open"); }); if(db.profiles.length) $("pWrap").classList.remove("open"); $("sidebar").classList.remove("open"); closeDetail(); if(!anyModalOpen()) $("overlay").classList.remove("open"); }
     if(e.key==="/"&&document.activeElement.id!=="search"&&document.activeElement.tagName!=="INPUT"&&document.activeElement.tagName!=="TEXTAREA"&&!anyModalOpen()){ e.preventDefault(); $("search").focus(); }
     if(e.key==="Enter"&&$("modalWrap").classList.contains("open")&&document.activeElement.tagName!=="TEXTAREA"&&document.activeElement.id!=="lp_new"&&document.activeElement.id!=="f_url"){ saveItem(); }
   });
