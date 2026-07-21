@@ -131,6 +131,25 @@ export const api = {
     }>(`/api/items/${id}/price-check`, { method: "POST" }),
   patchMe: (body: unknown) =>
     request<{ user: unknown }>("/api/me", { method: "PATCH", body: JSON.stringify(body) }),
+  moments: () =>
+    request<{
+      moments: {
+        id: string;
+        itemId: string | null;
+        kind: string;
+        title: string;
+        body: string;
+        deeplink: string;
+        status: string;
+        createdAt: string;
+      }[];
+      pendingCount: number;
+    }>("/api/moments"),
+  patchMoments: (ids: string[], status: "sent" | "dismissed" | "clicked") =>
+    request<{ ok: true; updated: number }>("/api/moments", {
+      method: "PATCH",
+      body: JSON.stringify({ ids, status }),
+    }),
   deleteMe: () => request<{ ok: true }>("/api/me", { method: "DELETE" }),
   lists: () => request<{ lists: WireListNode[] }>("/api/lists"),
   createList: (body: unknown) =>
