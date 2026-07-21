@@ -27,11 +27,11 @@ Work top-to-bottom. Each ticket is one focused session. Tick the box when types 
 - [x] **E3-2** `lib/extract` orchestrator + JSON-LD + OG + microdata parsers + `price.ts`; `/api/extract`. _(2026-07-21: ladder + Amazon/ASOS adapters (verified on live pages), GBP default for .uk, block detection; `/api/extract` pre-fills the add-item modal with microlink demoted to JS-page fallback.)_
 - [ ] **E3-3** Headless fallback (Playwright), rate-limited; adapter interface + more retailer adapters from spike findings. _(Deprioritised behind cron+alerts per Sagar's order; Tier C = LEGO/Argos/Currys/Boots.)_
 - [x] **E3-4** `/api/items/:id/price-check` + client "check now"; PricePoint history endpoint + detail chart. _(2026-07-21: endpoint logs PricePoint only on real change, refreshes lastCheckedAt/stock; "Check price now" button in the detail panel with blocked-store messaging. History+chart existed since E2-5.)_
-- [ ] **E3-5** `/api/cron/price-check` (tiered selection, batched, `CRON_SECRET`); wire Cloudflare Workers cron (`docs/06`).
+- [x] **E3-5** `/api/cron/price-check` (tiered selection, batched, `CRON_SECRET`); wire Cloudflare Workers cron (`docs/06`). _(2026-07-21: shipped on **Vercel Cron** instead of Cloudflare — one platform, `vercel.json` schedule 06:00 UTC daily. Hot/warm/slow tiers per spike, stalest-first batch of 25, 45s wall-clock deadline, blocked domains weekly. Verified locally against prod DB: sweep → PricePoint → target_hit Moment, second run dedupes to zero. NEEDS: `CRON_SECRET` env in Vercel dashboard.)_
 - [ ] **E3-6** `/api/cron/scan-sales` + `SaleSignal` + sale badges/banner (port `SALE_PATS`).
 
 ## Epic 4 — Moments engine ⭐ — `docs/01 §4`
-- [ ] **E4-1** Moment creation from price-check/scan (deduped); `Moment` table writes.
+- [x] **E4-1** Moment creation from price-check/scan (deduped); `Moment` table writes. _(2026-07-21: the sweep evaluates target_hit / **price_drop (new kind: ≥5% and ≥£1)** / back_in_stock / cooloff_done via `evaluateMoments`, writes with `skipDuplicates` on `dedupeKey`. Sale moments follow with E3-6.)_
 - [ ] **E4-2** `/api/cron/dispatch-moments`: rank, batch, quiet hours, frequency cap.
 - [ ] **E4-3** Delivery: Web Push (VAPID) + email (Resend); deep-links with affiliate + disclosure.
 - [ ] **E4-4** Moments/Activity feed UI + per-moment snooze/mute + "why am I seeing this?".

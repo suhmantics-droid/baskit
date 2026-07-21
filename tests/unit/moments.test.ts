@@ -17,6 +17,32 @@ describe("evaluateMoments — target hit", () => {
   });
 });
 
+describe("evaluateMoments — price drop", () => {
+  it("fires on a ≥5% and ≥£1 fall since the previous check", () => {
+    const ms = evaluateMoments(makeItem({ price: 8500 }), { now: NOW, previousPrice: 10000 });
+    expect(kinds(ms)).toEqual(["price_drop"]);
+    expect(ms[0].dedupeKey).toBe("price_drop:it1:8500");
+    expect(ms[0].body).toContain("15%");
+  });
+
+  it("ignores penny jitter and sub-5% moves", () => {
+    // 50p off — under the £1 floor
+    expect(kinds(evaluateMoments(makeItem({ price: 9950 }), { now: NOW, previousPrice: 10000 }))).toEqual([]);
+    // £1.50 off £100 — only 1.5%
+    expect(kinds(evaluateMoments(makeItem({ price: 9850 }), { now: NOW, previousPrice: 10000 }))).toEqual([]);
+    // price rise
+    expect(kinds(evaluateMoments(makeItem({ price: 12000 }), { now: NOW, previousPrice: 10000 }))).toEqual([]);
+  });
+
+  it("yields to target_hit when the same fall crosses the target", () => {
+    const ms = evaluateMoments(makeItem({ price: 7000, targetPrice: 8000 }), {
+      now: NOW,
+      previousPrice: 10000,
+    });
+    expect(kinds(ms)).toEqual(["target_hit"]);
+  });
+});
+
 describe("evaluateMoments — sale", () => {
   it("ranks a closing sale above an open-ended one", () => {
     const item = makeItem({ domain: "nike.com", price: 5000 });

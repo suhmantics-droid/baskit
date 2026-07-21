@@ -16,6 +16,7 @@ import { scoreItem } from "./decision";
 
 export type MomentKind =
   | "target_hit"
+  | "price_drop"
   | "sale"
   | "cooloff_done"
   | "back_in_stock"
@@ -57,6 +58,8 @@ export interface MomentContext {
   sale?: SaleContext | null;
   /** The item's stock at the previous check, for detecting a back-in-stock transition. */
   previousStock?: Stock;
+  /** The item's price (minor units) before the latest check, for drop detection. */
+  previousPrice?: number | null;
   /** Set when a budget window is currently open. */
   budgetWindow?: BudgetWindow | null;
 }
@@ -65,6 +68,9 @@ export interface MomentContext {
 const SALE_CLOSING_MS = 3 * 86_400_000;
 /** A decision score at or above this is "Leaning yes" or better. */
 const LEANING_YES = 48;
+/** A drop must be ≥5% AND ≥£1 to count — filters penny jitter and repricing noise. */
+const DROP_MIN_PCT = 0.05;
+const DROP_MIN_MINOR = 100;
 
 export function evaluateMoments(item: Item, ctx: MomentContext): Moment[] {
   // A bought item never generates buy-nudges.
@@ -91,6 +97,31 @@ export function evaluateMoments(item: Item, ctx: MomentContext): Moment[] {
       )} target.`,
       deeplink,
       dedupeKey: `target_hit:${item.id}:${item.targetPrice}`,
+    });
+  }
+
+  // 1b. Price drop — a meaningful fall since the previous check, target or not.
+  //     Suppressed when target_hit already fired for this price (one nudge, not two).
+  const prev = ctx.previousPrice;
+  if (
+    prev != null &&
+    price > 0 &&
+    prev - price >= DROP_MIN_MINOR &&
+    (prev - price) / prev >= DROP_MIN_PCT &&
+    !(item.targetPrice && price <= item.targetPrice)
+  ) {
+    const pct = Math.round(((prev - price) / prev) * 100);
+    out.push({
+      itemId: item.id,
+      kind: "price_drop",
+      priority: 3,
+      title: `Price drop on ${item.name}`,
+      body: `${item.name} fell ${pct}% — ${formatMoney(prev, currency)} → ${formatMoney(
+        price,
+        currency,
+      )}.`,
+      deeplink,
+      dedupeKey: `price_drop:${item.id}:${price}`,
     });
   }
 
