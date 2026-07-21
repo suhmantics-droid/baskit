@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
         // folder URLs for the demo player
         { source: "/demo", destination: "/demo/index.html" },
         { source: "/demo/", destination: "/demo/index.html" },
+        // Google Search Console file check — matches only google<hex>.html.
+        // TEMPORARY: drop this and app/api/gsc once the property is verified.
+        {
+          source: "/:file(google[a-f0-9]{6,32}\\.html)",
+          destination: "/api/gsc/:file",
+        },
       ],
       afterFiles: [],
       fallback: [],
