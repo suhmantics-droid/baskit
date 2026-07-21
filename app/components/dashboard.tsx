@@ -20,6 +20,7 @@ import { Sidebar, type Scope } from "./sidebar";
 import { ListModal } from "./list-modal";
 import { ListHeader } from "./list-header";
 import { MomentsBell } from "./moments-bell";
+import { BudgetView } from "./budget-view";
 import { enablePushNotifications } from "@/lib/client/push";
 import { PlanPanel } from "./plan-panel";
 import { SegDash } from "./seg-dash";
@@ -160,13 +161,13 @@ export function Dashboard({ user }: DashboardProps) {
 
   /** Effective view: a scoped list can vanish (deleted) — fall back to All without state churn. */
   const view: Scope = useMemo(() => {
-    if (scope === "all" || scope === "__fav" || scope === "__bought") return scope;
+    if (scope === "all" || scope === "__fav" || scope === "__bought" || scope === "__budget") return scope;
     return lists == null || lists.some((l) => l.id === scope) ? scope : "all";
   }, [scope, lists]);
 
   /** Current list node + breadcrumb chain, when a real list is scoped. */
   const listView = useMemo(() => {
-    if (view === "all" || view === "__fav" || view === "__bought" || !lists) return null;
+    if (view === "all" || view === "__fav" || view === "__bought" || view === "__budget" || !lists) return null;
     const node = lists.find((l) => l.id === view);
     if (!node) return null;
     const chain: WireListNode[] = [];
@@ -182,6 +183,7 @@ export function Dashboard({ user }: DashboardProps) {
   const scopedBase = useMemo(() => {
     const all = items ?? [];
     if (view === "all") return all;
+    if (view === "__budget") return [];
     if (view === "__fav") return all.filter((i) => i.fav);
     if (view === "__bought") return all.filter((i) => i.bought);
     const inSubtree = new Set(subtreeIds(domainLists, view));
@@ -491,6 +493,17 @@ export function Dashboard({ user }: DashboardProps) {
             </div>
           )}
 
+          {view === "__budget" && (
+            <BudgetView
+              items={items ?? []}
+              budget={user.monthlyBudget}
+              now={now}
+              onGoAll={() => setScope("all")}
+              onBudgetSaved={() => window.location.reload()}
+              showToast={showToast}
+            />
+          )}
+
           {listView && (
             <ListHeader
               node={listView.node}
@@ -554,7 +567,7 @@ export function Dashboard({ user }: DashboardProps) {
             />
           )}
 
-          {view !== "all" && view !== "__fav" && view !== "__bought" && (
+          {view !== "all" && view !== "__fav" && view !== "__bought" && view !== "__budget" && (
             <div className="sublists">
               {(lists ?? [])
                 .filter((l) => l.parentId === view)
@@ -584,6 +597,7 @@ export function Dashboard({ user }: DashboardProps) {
             </div>
           )}
 
+          {view !== "__budget" && (
           <div className="toolbar">
             <div className="chips">
               {(
@@ -620,8 +634,9 @@ export function Dashboard({ user }: DashboardProps) {
               <option value="drop">Biggest price drop</option>
             </select>
           </div>
+          )}
 
-          {loading ? (
+          {view === "__budget" ? null : loading ? (
             <div className="empty">
               <div className="ic">🧺</div>
               <h3>Loading your basket…</h3>

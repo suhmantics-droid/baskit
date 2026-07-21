@@ -7,7 +7,7 @@
 import type { WireListNode } from "@/lib/client/api";
 import { formatMoney } from "@/lib/format";
 
-export type Scope = "all" | "__fav" | "__bought" | string;
+export type Scope = "all" | "__fav" | "__bought" | "__budget" | string;
 
 export interface SidebarProps {
   lists: WireListNode[];
@@ -101,6 +101,12 @@ export function Sidebar({ lists, scope, allCount, favCount, boughtCount, open, o
           <span className="em">🧾</span>
           <span className="nm">Purchases</span>
           <span className="ct">{boughtCount}</span>
+        </div>
+      </div>
+      <div className={`side-item${scope === "__budget" ? " active" : ""}`} onClick={() => onSelect("__budget")}>
+        <div className="side-row">
+          <span className="em">💷</span>
+          <span className="nm">Budget</span>
         </div>
       </div>
       <div style={{ height: 6 }} />

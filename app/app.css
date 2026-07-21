@@ -40,6 +40,28 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 .menu .sep { height: 1px; background: var(--line); margin: 5px 2px; }
 .menu .mi small { color: var(--ink-faint); }
 
+/* budget view (E2-6) */
+.money-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 18px; box-shadow: var(--shadow-soft, none); }
+.mc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.mc-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; }
+@media (max-width: 720px) { .mc-grid { grid-template-columns: 1fr; } }
+.mc-l { display: block; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+.mc-inrow { display: flex; align-items: center; gap: 6px; }
+.mc-in { width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); font-size: 14px; }
+.mc-in.sm { padding: 7px 9px; font-size: 13.5px; }
+.mc-in.amt { max-width: 110px; }
+.mc-outrow { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.cur { color: var(--ink-faint); font-size: 13.5px; }
+.alloc { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.alloc-row { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 12px; padding: 7px 8px; border-radius: 10px; cursor: pointer; }
+.alloc-row:hover { background: var(--surface-2); }
+.alloc-row.active { background: var(--surface-2); outline: 1px solid var(--line-strong); }
+.alloc-row .am { font-size: 13px; font-weight: 600; }
+.alloc-row .abar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.alloc-row .abar span { display: block; height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+.alloc-row .av { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+@media (max-width: 640px) { .alloc-row { grid-template-columns: 60px 1fr; } .alloc-row .av { grid-column: 1 / -1; padding-left: 2px; } }
+
 /* moments bell + feed (E4-4) */
 .moments { position: relative; }
 .moments .icon-btn { position: relative; }
