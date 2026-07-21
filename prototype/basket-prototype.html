@@ -922,7 +922,7 @@
     $("tourNext").textContent=tourStep===TOUR.length-1?"Start planning":"Next";
   }
   function endTour(){ db.settings.tourDone=1; save(); closeWrap("tourWrap"); }
-  function maybeTour(){ if(!db.settings.tourDone){ setTimeout(openTour,250); } }
+  function maybeTour(){ if(!db.settings.tourDone){ setTimeout(function(){ if(!db.settings.tourDone) openTour(); },250); } }
   $("tourNext").onclick=function(){ if(tourStep<TOUR.length-1){ tourStep++; renderTourStep(); } else endTour(); };
   $("tourSkip").onclick=endTour;
 
@@ -980,21 +980,34 @@
     var w=$("segDash");
     if(filter.list!=="all"||!db.current){ w.innerHTML=""; return; }
     var roots=rootLists();
-    if(!roots.length){ w.innerHTML=""; return; }
+    if(!roots.length&&!items().length){ w.innerHTML=""; return; }
     var pal=palette();
-    var segs=roots.map(function(l,i){ return { id:l.id, name:l.name, emoji:l.emoji||"🗂", val:listSpent(l.id), cnt:itemsInSubtree(l.id).length, kids:childrenOf(l.id).length, cap:l.cap, col:pal[i%pal.length] }; });
-    var inAny={}; roots.forEach(function(l){ subtreeIds(l.id).forEach(function(x){ inAny[x]=1; }); });
-    var un=items().filter(function(it){ return !(it.lists||[]).some(function(x){ return inAny[x]; }); });
-    var unVal=un.reduce(function(s,it){ return s+(Number(latestPrice(it))||0); },0);
-    var total=segs.reduce(function(s,x){ return s+x.val; },0)+unVal;
-    var cards=segs.map(function(s){
+    var view=db.settings.spendView||"seg";
+    var segs, total;
+    if(view==="cat"){
+      var cats={}; items().forEach(function(it){ var c=it.cat||"Uncategorised"; cats[c]=cats[c]||{val:0,cnt:0}; cats[c].val+=Number(latestPrice(it))||0; cats[c].cnt++; });
+      segs=Object.keys(cats).sort(function(a,b){ return cats[b].val-cats[a].val; }).map(function(c,i){ return { id:"cat:"+c, name:c, emoji:catGlyph(c), val:cats[c].val, col:pal[i%pal.length] }; });
+      total=segs.reduce(function(s,x){ return s+x.val; },0);
+    } else {
+      segs=roots.map(function(l,i){ return { id:l.id, name:l.name, emoji:l.emoji||"🗂", val:listSpent(l.id), cnt:itemsInSubtree(l.id).length, kids:childrenOf(l.id).length, cap:l.cap, col:pal[i%pal.length] }; });
+      var inAny={}; roots.forEach(function(l){ subtreeIds(l.id).forEach(function(x){ inAny[x]=1; }); });
+      var un=items().filter(function(it){ return !(it.lists||[]).some(function(x){ return inAny[x]; }); });
+      var unVal=un.reduce(function(s,it){ return s+(Number(latestPrice(it))||0); },0);
+      total=segs.reduce(function(s,x){ return s+x.val; },0)+unVal;
+      if(unVal>0) segs=segs.concat([{id:"__un",name:"Unsorted",emoji:"🧺",val:unVal,col:"var(--ink-faint)"}]);
+    }
+    var cardSegs = view==="cat" ? roots.map(function(l,i){ return { id:l.id, name:l.name, emoji:l.emoji||"🗂", val:listSpent(l.id), cnt:itemsInSubtree(l.id).length, kids:childrenOf(l.id).length, cap:l.cap, col:pal[i%pal.length] }; }) : segs.filter(function(s){ return s.id!=="__un"; });
+    var cards=cardSegs.map(function(s){
       var st=capState(s.val,s.cap);
       var foot=s.cap?'<div class="side-cap '+st+'"><div class="capbar"><span style="width:'+Math.min(100,s.val/s.cap*100).toFixed(0)+'%"></span></div><div class="lbl"><span>'+money(s.val)+'</span><span>'+(s.val>s.cap?("+"+money(s.val-s.cap)+" over"):("cap "+money(s.cap)))+'</span></div></div>':'<div class="sc-v">'+money(s.val)+'</div>';
       return '<div class="segcard" data-seg="'+s.id+'" style="--segcol:'+s.col+'"><div class="sc-top"><span class="sc-em">'+s.emoji+'</span><button class="tw" data-addgroup="'+s.id+'" title="Add a group inside">＋</button></div><div class="sc-n">'+esc(s.name)+'</div><div class="sc-s">'+s.cnt+' item'+(s.cnt===1?"":"s")+(s.kids?' · '+s.kids+' group'+(s.kids===1?"":"s"):'')+'</div>'+foot+'</div>';
     }).join("")+'<div class="segcard add" id="segAddCard">＋ Add segment</div>';
-    var dsegs=segs.concat(unVal>0?[{id:"__un",name:"Unsorted",emoji:"🧺",val:unVal,col:"var(--ink-faint)"}]:[]);
-    w.innerHTML='<div class="dash-duo"><div class="chartbox"><h4>Spend map</h4><div class="sub">Where your saved value sits — hover a slice, click to open</div>'+donutHtml(dsegs,total)+'</div><div><div class="sec-t" style="margin:4px 0 8px">Your segments</div><div class="seg-cards">'+cards+'</div></div></div>';
-    Array.prototype.forEach.call(w.querySelectorAll("[data-seg]"),function(el){ el.onclick=function(e){ var t=e.target; if(t&&t.getAttribute&&t.getAttribute("data-addgroup")) return; var id=el.getAttribute("data-seg"); if(id!=="__un") selectList(id); }; });
+    var allItems=items(); var boughtN=allItems.filter(function(i){return i.bought;}).length; var catN=Object.keys(categories()).length;
+    var sum='<div class="hint" style="margin:-6px 0 10px">🧺 '+allItems.length+' item'+(allItems.length===1?"":"s")+' · ✓ '+boughtN+' bought · 🏷 '+catN+' categor'+(catN===1?"y":"ies")+' · 💷 '+money(total)+' saved</div>';
+    var toggles='<div class="chips" style="margin:0 0 10px"><button class="chip'+(view==="seg"?" active":"")+'" data-spendview="seg">By segment</button><button class="chip'+(view==="cat"?" active":"")+'" data-spendview="cat">By category</button></div>';
+    w.innerHTML='<div class="dash-duo"><div class="chartbox"><h4>Spend map</h4><div class="sub">Where your saved value sits — hover a slice, click to open</div>'+sum+toggles+donutHtml(segs,total)+'</div><div><div class="sec-t" style="margin:4px 0 8px">Your segments</div><div class="seg-cards">'+cards+'</div></div></div>';
+    Array.prototype.forEach.call(w.querySelectorAll("[data-seg]"),function(el){ el.onclick=function(e){ var t=e.target; if(t&&t.getAttribute&&t.getAttribute("data-addgroup")) return; var id=el.getAttribute("data-seg"); if(id.indexOf("cat:")===0){ filter.cat=id.slice(4); render(); var g=$("gridWrap"); if(g) g.scrollIntoView({behavior:"smooth"}); return; } if(id!=="__un") selectList(id); }; });
+    Array.prototype.forEach.call(w.querySelectorAll("[data-spendview]"),function(b){ b.onclick=function(){ db.settings.spendView=b.getAttribute("data-spendview"); save(); render(); }; });
     Array.prototype.forEach.call(w.querySelectorAll("[data-addgroup]"),function(el){ el.onclick=function(e){ e.stopPropagation(); openListModal(null,el.getAttribute("data-addgroup")); }; });
     var ac=$("segAddCard"); if(ac) ac.onclick=function(){ openSegPicker(false); };
     // animate the donut in, wire hover -> centre label
