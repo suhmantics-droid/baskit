@@ -33,7 +33,7 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 .icon-btn:hover { border-color: var(--ink); color: var(--ink); }
 .profile { position: relative; }
 .avatar { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--ink); color: var(--bg); display: grid; place-items: center; font-weight: 600; font-size: 14px; cursor: pointer; }
-.menu { position: absolute; right: 0; top: 46px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); min-width: 240px; padding: 6px; display: none; z-index: 50; }
+.menu { position: absolute; right: 0; top: 46px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); min-width: 240px; max-width: calc(100vw - 16px); max-height: calc(100dvh - 76px); overflow-y: auto; padding: 6px; display: none; z-index: 50; }
 .menu.open { display: block; }
 .menu .mi { padding: 9px 10px; border-radius: 8px; font-size: 14px; display: flex; align-items: center; gap: 8px; color: var(--ink); cursor: pointer; text-decoration: none; }
 .menu .mi:hover { background: var(--surface-2); }
