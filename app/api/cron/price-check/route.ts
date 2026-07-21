@@ -92,7 +92,7 @@ export async function GET(request: Request) {
       break;
     }
     stats.attempted++;
-    const outcome = await extractFromUrl(item.url!);
+    const outcome = await extractFromUrl(item.url!, 15_000); // nobody is waiting overnight
     const now = new Date();
     const ex = outcome.extracted;
     if (!ex) {

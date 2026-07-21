@@ -26,6 +26,8 @@ export interface ExtractOutcome {
   status: number | null;
   /** Bot wall detected (403/429/503 or challenge-page markup). */
   blocked: boolean;
+  /** The store never answered inside the time budget (silent stall, not a refusal). */
+  slow: boolean;
   extracted: Extracted | null;
   note: string | null;
 }

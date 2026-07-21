@@ -71,11 +71,18 @@ export function looksBlocked(status: number, html: string): boolean {
   return BLOCK_PATTERNS.test(html.slice(0, 30_000)) && !/application\/ld\+json/i.test(html);
 }
 
-/** One polite fetch + the ladder. Never throws on bad pages. */
-export async function extractFromUrl(url: string): Promise<ExtractOutcome> {
+/**
+ * One polite fetch + the ladder. Never throws on bad pages.
+ *
+ * `timeoutMs` defaults to 8s because a person is usually waiting: some stores
+ * (John Lewis, ASOS) don't refuse datacentre traffic, they just never answer,
+ * and a 15s spinner ending in nothing is worse than a quick honest miss. The
+ * nightly sweep passes a longer budget — nobody is watching it.
+ */
+export async function extractFromUrl(url: string, timeoutMs = 8_000): Promise<ExtractOutcome> {
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 15_000);
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     const res = await fetch(url, {
       signal: ctrl.signal,
       redirect: "follow",
@@ -102,14 +109,17 @@ export async function extractFromUrl(url: string): Promise<ExtractOutcome> {
           : res.status !== 200
             ? `http ${res.status}`
             : "no readable price (JS-rendered?)",
+      slow: false,
     };
   } catch (e) {
+    const timedOut = (e as Error).name === "AbortError";
     return {
       ok: false,
       status: null,
       blocked: false,
       extracted: null,
-      note: `fetch failed: ${(e as Error).name}`,
+      note: timedOut ? "store did not respond in time" : `fetch failed: ${(e as Error).name}`,
+      slow: timedOut,
     };
   }
 }
