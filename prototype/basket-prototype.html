@@ -574,7 +574,40 @@
     });
     return nd;
   }
-  function save(){ store.set(DB_KEY, JSON.stringify(db)); }
+  function save(){ db.settings.lastSaved=now(); store.set(DB_KEY, JSON.stringify(db)); schedulePush(); }
+
+  // ---------- cloud backup (sync-lite): signed-in visitors keep their basket ----------
+  var cloud={ user:null, announced:false, pushTimer:null };
+  function schedulePush(){ if(!cloud.user) return; clearTimeout(cloud.pushTimer); cloud.pushTimer=setTimeout(pushCloud,2000); }
+  function pushCloud(){
+    if(!cloud.user) return;
+    try{
+      fetch("/api/backup",{method:"PUT",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({db:db})}).then(function(r){
+        if(r.ok&&!cloud.announced){ cloud.announced=true; toast("Your basket is saved to your account ✓",3000); }
+      }).catch(function(){});
+    }catch(e){}
+  }
+  function syncCloud(){
+    try{
+      fetch("/api/me",{credentials:"same-origin"}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(me){
+        cloud.user=me.user;
+        return fetch("/api/backup",{credentials:"same-origin"}).then(function(r){ return r.json(); });
+      }).then(function(b){
+        var serverMs=b&&b.at?Date.parse(b.at):0;
+        var localMs=(db.settings&&db.settings.lastSaved)||0;
+        if(b&&b.db&&b.db.profiles&&(!db.profiles.length||serverMs>localMs)){
+          db=b.db; db.settings=db.settings||{}; db.settings.lastSaved=serverMs;
+          store.set(DB_KEY, JSON.stringify(db));
+          cloud.announced=true;
+          if(db.profiles.length){ closeWrap("pWrap"); }
+          render();
+          toast("Basket restored from your account ✓",3000);
+        } else if(db.profiles.length){
+          pushCloud();
+        }
+      }).catch(function(){ /* signed out or offline: local-only, as before */ });
+    }catch(e){}
+  }
 
   var idSeed = (function(){ var v=parseInt(store.get("basket.seed")||"1000",10); return isNaN(v)?1000:v; })();
   function seedRand(){ idSeed=(idSeed*9301+49297)%233280; return idSeed/233280; }
@@ -620,7 +653,12 @@
     mi(m,"🏷 Scan sites for sales",function(){ scanSales(); });
     mi(m,(db.settings.autoCheck===false?"○":"◉")+" Auto price-check weekly",function(){ db.settings.autoCheck=(db.settings.autoCheck===false); save(); toast(db.settings.autoCheck?"Auto price-check on — runs when you open Baskit":"Auto price-check off"); });
     sep(m);
-    mi(m,'☁️ Get accounts (beta) — basket on every device',function(){ window.open("https://baskit-app-eta.vercel.app","_blank"); });
+    if(cloud.user){
+      mi(m,'✅ Basket saved to '+esc(cloud.user.email),function(){ toast("Auto-saving on every change ✓"); });
+      mi(m,'🚪 Sign out',function(){ location.href="/api/auth/signout"; });
+    } else {
+      mi(m,'🔐 Sign in — keep your basket safe on any device',function(){ location.href="/api/auth/signin?callbackUrl=%2F"; });
+    }
     mi(m,'💷 My money — income, outgoings, what\'s left',function(){ openMoney(); });
     mi(m,'📋 Copy basket as text',function(){ copyAsText(null); });
     mi(m,'💬 Send feedback',function(){ sendFeedback(); });
@@ -1307,7 +1345,7 @@
     else if(newPrice!=null&&(!it.priceHistory||!it.priceHistory.length)){ it.price=newPrice; it.priceHistory=[{t:now(),p:newPrice}]; }
     if(!editingId) list.push(it);
     save(); closeWrap("modalWrap"); render();
-    if(!editingId&&list.length===5&&!db.settings.cloudNudged){ db.settings.cloudNudged=1; save(); toast("5 items in. The accounts beta keeps your basket on every device — it's in the avatar menu ☁️",4500); }
+    if(!editingId&&list.length===5&&!db.settings.cloudNudged&&!cloud.user){ db.settings.cloudNudged=1; save(); toast("5 items in. Sign in from the avatar menu and your basket is saved to your account — safe on any device 🔐",4500); }
     else toast(editingId?"Saved changes":"Added to your basket");
     if(editingId&&detailId===editingId) openDetail(editingId);
   }
@@ -1396,7 +1434,7 @@
   window.addEventListener("hashchange",handleHash);
   // ask the browser to protect local data from eviction (mitigates iOS/Safari cleanup)
   try{ if(navigator.storage&&navigator.storage.persist){ navigator.storage.persist(); } }catch(e){}
-  render(); handleHash(); maybeAutoRefresh();
+  render(); handleHash(); maybeAutoRefresh(); syncCloud();
 })();
 </script>
 </body>

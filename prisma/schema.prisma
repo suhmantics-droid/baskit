@@ -24,6 +24,9 @@ model User {
   items         Item[]
   lists         List[]
   notifPrefs    Json? // channels, quietHours, frequency, payday
+  /** Whole-basket backup from the demo surface (sync-lite: newest write wins). */
+  demoBackup    Json?
+  demoBackupAt  DateTime?
   memberships   ListMember[]
   accounts      Account[]
   sessions      Session[]
