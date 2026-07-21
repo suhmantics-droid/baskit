@@ -178,6 +178,18 @@ model Reservation {
   createdAt    DateTime @default(now())
 }
 
+model PushSubscription {
+  // one browser/device that opted into Web Push moments (E4-3)
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 model Moment {
   // a generated nudge
   id           String    @id @default(cuid())

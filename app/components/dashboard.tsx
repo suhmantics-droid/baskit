@@ -20,6 +20,7 @@ import { Sidebar, type Scope } from "./sidebar";
 import { ListModal } from "./list-modal";
 import { ListHeader } from "./list-header";
 import { MomentsBell } from "./moments-bell";
+import { enablePushNotifications } from "@/lib/client/push";
 import { PlanPanel } from "./plan-panel";
 import { SegDash } from "./seg-dash";
 
@@ -356,6 +357,13 @@ export function Dashboard({ user }: DashboardProps) {
                   onClick={() => importInputRef.current?.click()}
                 >
                   ⬆ Import demo backup
+                </button>
+                <button
+                  className="mi"
+                  style={{ width: "100%", border: "none", background: "none" }}
+                  onClick={async () => showToast(await enablePushNotifications())}
+                >
+                  🔔 Turn on notifications
                 </button>
                 <button
                   className="mi"

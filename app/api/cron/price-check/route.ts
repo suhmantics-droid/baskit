@@ -15,9 +15,10 @@
  */
 import { prisma } from "@/lib/db";
 import { extractFromUrl } from "@/lib/extract";
-import { evaluateMoments } from "@/lib/moments";
+import { evaluateMoments, type Moment as MomentCandidate } from "@/lib/moments";
 import { toDomainItem } from "@/lib/api/items";
 import { domainOf } from "@/lib/url";
+import { pushToUser } from "@/lib/push";
 import type { Stock } from "@/lib/types";
 
 export const maxDuration = 60;
@@ -81,6 +82,7 @@ export async function GET(request: Request) {
     blocked: 0,
     unreadable: 0,
     momentsCreated: 0,
+    pushed: 0,
     deadlineHit: false,
   };
 
@@ -120,21 +122,7 @@ export async function GET(request: Request) {
       previousStock: item.stock as Stock,
       previousPrice: item.price,
     });
-    if (moments.length) {
-      const created = await prisma.moment.createMany({
-        data: moments.map((m) => ({
-          userId: item.userId,
-          itemId: m.itemId,
-          kind: m.kind,
-          title: m.title,
-          body: m.body,
-          deeplink: m.deeplink,
-          dedupeKey: m.dedupeKey,
-        })),
-        skipDuplicates: true,
-      });
-      stats.momentsCreated += created.count;
-    }
+    stats.momentsCreated += await recordMoments(item.userId, moments, stats);
     await new Promise((r) => setTimeout(r, 300)); // pacing between stores
   }
 
@@ -149,22 +137,48 @@ export async function GET(request: Request) {
       now: Date.now(),
       budget: item.user.monthlyBudget,
     }).filter((m) => m.kind === "cooloff_done");
-    if (moments.length) {
-      const created = await prisma.moment.createMany({
-        data: moments.map((m) => ({
-          userId: item.userId,
-          itemId: m.itemId,
-          kind: m.kind,
-          title: m.title,
-          body: m.body,
-          deeplink: m.deeplink,
-          dedupeKey: m.dedupeKey,
-        })),
-        skipDuplicates: true,
-      });
-      stats.momentsCreated += created.count;
-    }
+    stats.momentsCreated += await recordMoments(item.userId, moments, stats);
   }
 
   return Response.json({ ok: true, tookMs: Date.now() - started, ...stats });
+}
+
+/**
+ * Persist moment candidates (deduped on dedupeKey) and push ONLY the genuinely
+ * new ones to the user's devices — skipDuplicates means a re-crossing that
+ * already fired never pings twice.
+ */
+async function recordMoments(
+  userId: string,
+  moments: MomentCandidate[],
+  stats: { pushed: number },
+): Promise<number> {
+  if (!moments.length) return 0;
+  const before = await prisma.moment.findMany({
+    where: { dedupeKey: { in: moments.map((m) => m.dedupeKey) } },
+    select: { dedupeKey: true },
+  });
+  const seen = new Set(before.map((b) => b.dedupeKey));
+  const created = await prisma.moment.createMany({
+    data: moments.map((m) => ({
+      userId,
+      itemId: m.itemId,
+      kind: m.kind,
+      title: m.title,
+      body: m.body,
+      deeplink: m.deeplink,
+      dedupeKey: m.dedupeKey,
+    })),
+    skipDuplicates: true,
+  });
+  for (const m of moments) {
+    if (seen.has(m.dedupeKey)) continue;
+    stats.pushed += await pushToUser(userId, {
+      title: m.title,
+      body: m.body,
+      deeplink: m.deeplink,
+      tag: m.dedupeKey,
+    });
+  }
+  return created.count;
 }
