@@ -45,12 +45,13 @@
 <div class="stage">
   <div class="bars" id="bars"></div>
   <div class="frame" id="frame">
-    <img src="/demo/f1-dashboard.png" alt="Baskit dashboard with stats and items" />
-    <img src="/demo/f2-plan.png" alt="Monthly plan bar and ready-to-buy list" />
-    <img src="/demo/f3-spendmap.png" alt="Spend map donut and segments" />
-    <img src="/demo/f4-grid.png" alt="Item cards with buy or wait verdicts" />
-    <img src="/demo/f5-detail.png" alt="Item detail with score ring and price history" />
-    <img src="/demo/f6-purchases.png" alt="Purchases ledger" />
+    <img src="/demo/f1-start.png" alt="Setting up a basket with a name and a monthly budget" />
+    <img src="/demo/f2-segments.png" alt="Choosing what you are planning for: Christmas, birthdays, kids" />
+    <img src="/demo/f3-fetch.png" alt="Pasting a product link and Baskit filling in the price, image and stock" />
+    <img src="/demo/f4-dashboard.png" alt="The basket dashboard with totals" />
+    <img src="/demo/f5-plan.png" alt="This month's plan: spent, planned and budget" />
+    <img src="/demo/f6-spendmap.png" alt="Spend map showing where the money is going" />
+    <img src="/demo/f7-detail.png" alt="An item's buy or wait score with reasons and price history" />
     <div class="cta" id="cta">
       <div>
         <div class="mark">🧺</div>
@@ -72,15 +73,16 @@
 <script>
 (function(){
   var caps=[
-    ["Meet your basket","Everything you want in one place, with a plan attached"],
-    ["The month in one bar","Spent, planned, budget. It says £176 short before you overspend"],
-    ["The spend map","See where your money is headed across segments"],
-    ["Verdicts, not vibes","Every item gets a buy or wait score with reasons"],
-    ["Open anything","Score ring, reasons, price history and cool-offs"],
-    ["Your record","Purchases become a ledger, with savings from waiting"],
-    ["That is Baskit","Free in the browser, nothing to install"]
+    ["Start with your number","Your name and what you can spend a month. That is the whole setup"],
+    ["Say what you are planning for","Christmas, birthdays, the kids. Each one gets its own budget"],
+    ["Paste a link, tap Fetch","Baskit reads the real price, photo and stock from the shop itself"],
+    ["Your basket, all in one place","Everything you are thinking about buying, with the totals"],
+    ["The month in one bar","Spent, planned and what is left, before you commit to it"],
+    ["Where the money is going","The spend map splits your basket by segment or category"],
+    ["Buy it or wait?","A score with real reasons, the price history, and a cool-off if you need one"],
+    ["That is Baskit","Free, works in your phone browser, nothing to install"]
   ];
-  var DUR=3800, n=7, i=-1, playing=true, timer=null, raf=null, started=0, elapsed=0;
+  var DUR=3800, n=8, i=-1, playing=true, timer=null, raf=null, started=0, elapsed=0;
   var imgs=document.querySelectorAll("#frame img");
   var bars=document.getElementById("bars");
   for(var b=0;b<n;b++){ var d=document.createElement("div"); d.className="bar"; d.innerHTML="<span></span>"; bars.appendChild(d); }
