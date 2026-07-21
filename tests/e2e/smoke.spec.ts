@@ -85,7 +85,7 @@ test.describe("mobile (iPhone-size) — the primary surface", () => {
     await page.click("body", { position: { x: 10, y: 300 } });
 
     // gate: add-item modal opens and its fields are 16px+ (no iOS zoom)
-    await page.click("#addBtn");
+    await page.click("#addBtnTop");
     await expect(page.locator("#modalWrap")).toHaveClass(/open/);
     const nameFontPx = await page
       .locator("#f_name")
