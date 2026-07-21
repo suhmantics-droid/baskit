@@ -268,7 +268,7 @@ select.sel { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--lin
 @media (max-width: 620px) { .panel { width: 100%; } .row2, .row3 { grid-template-columns: 1fr; } }
 
 /* chartboxes + planning cockpit (used from E2-4 onward) */
-.chartbox { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+.chartbox { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; min-width: 0; }
 .chartbox h4 { margin: 0 0 4px; font-family: var(--font-display, Georgia), Georgia, serif; font-size: 16.5px; font-weight: 600; }
 .chartbox .sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; }
 .meter { height: 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
@@ -287,14 +287,18 @@ select.sel { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--lin
 .budget-nums .bn .v.ok { color: var(--good); }
 
 /* planning cockpit + segments dash (ported from the prototype) */
-.dash-duo { display: grid; grid-template-columns: 400px 1fr; gap: 12px; margin-bottom: 18px; align-items: start; }
-@media (max-width: 1080px) { .dash-duo { grid-template-columns: 1fr; } }
+/* minmax(0,…) not bare 1fr: a bare fr track can't shrink below its content's
+   minimum, so one un-wrappable row inside would push every panel off-screen. */
+.dash-duo { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 12px; margin-bottom: 18px; align-items: start; }
+@media (max-width: 1080px) { .dash-duo { grid-template-columns: minmax(0, 1fr); } }
 .seg-committed { background: repeating-linear-gradient(135deg, var(--accent) 0 6px, color-mix(in srgb, var(--accent) 45%, var(--surface)) 6px 12px) !important; }
 .buynow { display: grid; gap: 8px; }
 .bn-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--surface-2); transition: border-color 0.12s, transform 0.12s; }
 .bn-row:hover { border-color: var(--good); transform: translateX(2px); }
-.bn-row .nm { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-.bn-row .why { font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+/* min-width:0 is what lets these actually shrink — flex items default to
+   min-width:auto, which floors the row at its full text width. */
+.bn-row .nm { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.bn-row .why { font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; min-width: 0; }
 .bn-row .pr { font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bn-empty { font-size: 13px; color: var(--ink-soft); padding: 14px 4px; }
 .savedpill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--good); background: var(--good-bg); padding: 3px 9px; border-radius: 999px; }
@@ -347,6 +351,10 @@ select.sel { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--lin
   /* On phones the header can wrap, leaving dropdown anchors mid-bar — pin
      dropdowns to the viewport instead so they can never open off-screen. */
   .menu, .moments-pop { position: fixed; right: 8px; left: auto; top: 60px; }
+  /* Buy-now rows: name + price on the first line, the reason underneath in
+     full, rather than three things fighting over one narrow line. */
+  .bn-row { flex-wrap: wrap; }
+  .bn-row .why { flex-basis: 100%; max-width: none; white-space: normal; order: 3; margin-top: 2px; }
 }
 @media (hover: none) {
   /* touch screens have no hover — reveal-on-hover controls must simply be visible */

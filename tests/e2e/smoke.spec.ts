@@ -73,6 +73,25 @@ test.describe("mobile (iPhone-size) — the primary surface", () => {
     );
     expect(hScroll, "horizontal scroll on mobile").toBe(false);
 
+    // gate: nothing sticks out past the right edge. The page-scroll check above
+    // can't see this on its own — the root clips overflow-x, so a too-wide panel
+    // is silently cut off instead of scrolling (exactly how the cockpit shipped
+    // broken: a bare 1fr track couldn't shrink under an un-wrappable row).
+    await page.click("#empSeed"); // seed samples so the cockpit actually renders
+    const clipped = await page.evaluate(() => {
+      const vw = window.innerWidth;
+      return Array.from(document.body.querySelectorAll<HTMLElement>("*"))
+        .filter((el) => {
+          const cs = getComputedStyle(el);
+          if (cs.display === "none" || cs.visibility === "hidden") return false;
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && r.right > vw + 1;
+        })
+        .slice(0, 5)
+        .map((el) => `${el.tagName.toLowerCase()}.${el.className} → ${Math.round(el.getBoundingClientRect().right)}px`);
+    });
+    expect(clipped, "elements pushed past the right edge").toEqual([]);
+
     // gate: avatar menu opens fully on-screen (regression: it opened off-screen
     // when the wrapped header moved its anchor)
     await page.click(".avatar");
