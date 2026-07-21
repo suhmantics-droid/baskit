@@ -21,6 +21,7 @@ import { ListModal } from "./list-modal";
 import { ListHeader } from "./list-header";
 import { MomentsBell } from "./moments-bell";
 import { BudgetView } from "./budget-view";
+import { Tour } from "./tour";
 import { enablePushNotifications } from "@/lib/client/push";
 import { PlanPanel } from "./plan-panel";
 import { SegDash } from "./seg-dash";
@@ -304,6 +305,7 @@ export function Dashboard({ user }: DashboardProps) {
 
   return (
     <>
+      <Tour />
       <header className="app-header">
         <div className="bar">
           <button className="icon-btn hamb" title="Lists" onClick={() => setSidebarOpen((v) => !v)}>
