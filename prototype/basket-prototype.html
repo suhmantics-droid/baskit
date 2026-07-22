@@ -317,6 +317,15 @@
   .pchip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   /* planning cockpit */
   .seg-committed { background: repeating-linear-gradient(135deg, var(--accent) 0 6px, color-mix(in srgb, var(--accent) 45%, var(--surface)) 6px 12px) !important; }
+  /* Save bar — always tells the truth about where this basket lives. */
+  .savebar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 15px; border-radius: var(--radius-sm); margin-bottom: 14px; border: 1px solid var(--line-strong); background: var(--surface-2); }
+  .savebar .txt { flex: 1; min-width: 200px; font-size: 13.5px; line-height: 1.45; }
+  .savebar .txt b { display: block; font-size: 14px; margin-bottom: 1px; }
+  .savebar .txt span { color: var(--ink-soft); }
+  .savebar.warn { border-color: var(--warn); background: color-mix(in oklab, var(--warn) 9%, var(--surface)); }
+  .savebar.saved { border-color: var(--good); background: color-mix(in oklab, var(--good) 8%, var(--surface)); }
+  .savebar .btn { flex: 0 0 auto; }
+  @media (max-width: 620px) { .savebar .btn { width: 100%; justify-content: center; } }
   .buynow { display: grid; gap: 8px; }
   .bn-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--surface-2); transition: border-color .12s, transform .12s; }
   .bn-row:hover { border-color: var(--good); transform: translateX(2px); }
@@ -390,7 +399,8 @@
         <button class="btn" id="addBtnTop"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg> Add item</button>
       </div>
     </div>
-    <div id="statsWrap"><div class="stats" id="stats"></div></div>
+    <div id="saveBar"></div>
+<div id="statsWrap"><div class="stats" id="stats"></div></div>
     <div id="planWrap"></div>
     <div id="segDash"></div>
     <div id="listHeader"></div>
@@ -629,6 +639,7 @@
         } else if(db.profiles.length){
           pushCloud();
         }
+        renderSaveBar(); // signed in now — flip the bar from warning to confirmed
       }).catch(function(){ /* signed out or offline: local-only, as before */ });
     }catch(e){}
   }
@@ -753,10 +764,36 @@
     var p=currentProfile(); CUR=p.cur||"£";
     $("avatarBtn").textContent=initials(p.name);
     $("greeting").textContent=(p.name&&p.name!=="Me")?(p.name+"’s basket"):"Your basket";
-    renderSidebar(); renderMainHeader(); renderStatusChips(); renderCatFilter(); renderPlan(); renderSegDash(); renderSublists(); renderGrid(); renderListPickerData(); renderSalesBanner();
+    renderSidebar(); renderMainHeader(); renderSaveBar(); renderStatusChips(); renderCatFilter(); renderPlan(); renderSegDash(); renderSublists(); renderGrid();renderListPickerData(); renderSalesBanner();
   }
 
-  function renderSidebar(){
+  /**
+ * The save bar. A basket kept only in this browser can be wiped by clearing
+ * data or lost by switching phones, so the state is stated permanently rather
+ * than in a toast someone can miss. Signing in turns on cloud backup.
+ */
+function renderSaveBar(){
+  var bar=$("saveBar"); if(!bar||!db.current) return;
+  if(cloud.user){
+    bar.innerHTML='<div class="savebar saved"><div class="txt"><b>✅ Saved to '+esc(cloud.user.email)+'</b>'
+      +'<span>Every change backs up automatically. Sign in on any device to pick it up there.</span></div></div>';
+    return;
+  }
+  var n=items().length;
+  if(!n){
+    bar.innerHTML='<div class="savebar"><div class="txt"><b>🔐 Keep your basket safe</b>'
+      +'<span>Add your email and it saves to the cloud, so it survives a new phone or a browser clear. No password — we email you a link.</span></div>'
+      +'<button class="btn ghost sm" id="saveBarBtn">Save my basket</button></div>';
+  } else {
+    bar.innerHTML='<div class="savebar warn"><div class="txt"><b>⚠️ This basket is only on this phone</b>'
+      +'<span>'+n+' item'+(n===1?"":"s")+' saved here. Clear your browser or switch device and it is gone. Add your email to keep it — no password needed.</span></div>'
+      +'<button class="btn sm" id="saveBarBtn">Save my basket</button></div>';
+  }
+  var b=$("saveBarBtn");
+  if(b) b.onclick=function(){ location.href="/api/auth/signin?callbackUrl=%2F"; };
+}
+
+function renderSidebar(){
     var sb=$("sidebar");
     var html='<div class="side-h"><span>Segments &amp; groups</span><button class="side-add" id="newListBtn" title="New list">＋</button></div>';
     html+='<div class="side-item '+(filter.list==="all"?"active":"")+'" data-list="all"><div class="side-row"><span class="em">🧺</span><span class="nm">All items</span><span class="ct">'+items().length+'</span></div></div>';
@@ -1375,7 +1412,8 @@
     else if(newPrice!=null&&(!it.priceHistory||!it.priceHistory.length)){ it.price=newPrice; it.priceHistory=[{t:now(),p:newPrice}]; }
     if(!editingId) list.push(it);
     save(); closeWrap("modalWrap"); render();
-    if(!editingId&&list.length===5&&!db.settings.cloudNudged&&!cloud.user){ db.settings.cloudNudged=1; save(); toast("5 items in. Sign in from the avatar menu and your basket is saved to your account — safe on any device 🔐",4500); }
+    // Prompt at the FIRST item — that is the moment there is something to lose.
+  if(!editingId&&list.length===1&&!db.settings.cloudNudged&&!cloud.user){ db.settings.cloudNudged=1; save(); toast("Saved on this phone. Tap “Save my basket” up top to keep it safe on any device 🔐",5000); }
     else toast(editingId?"Saved changes":"Added to your basket");
     if(editingId&&detailId===editingId) openDetail(editingId);
   }
