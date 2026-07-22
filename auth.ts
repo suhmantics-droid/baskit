@@ -36,16 +36,26 @@ const providers: NextAuthConfig["providers"] = [
           to: [identifier],
           // The branded sender is send-only (no inbox) — replies reach a human.
           reply_to: process.env.EMAIL_REPLY_TO ?? "suhmantics@gmail.com",
-          subject: "Sign in to Baskit",
+          subject: "Your Baskit sign-in link",
+          // Written to read as the legit transactional email it is, not the
+          // bare button+link shape spam filters distrust from a young domain:
+          // real sender identity, context for why it arrived, and the plain URL
+          // visible as a fallback (helps filters and users when the button
+          // doesn't render).
           html: [
-            '<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:420px;margin:0 auto;padding:32px 24px">',
-            '<div style="font-weight:600;font-size:20px;letter-spacing:-0.02em;margin-bottom:16px">baskit</div>',
-            '<p style="font-size:15px;color:#444;margin:0 0 20px">Tap the button to sign in. This link works once and expires in 24 hours.</p>',
-            `<a href="${url}" style="display:inline-block;background:#16130f;color:#fafaf8;text-decoration:none;padding:12px 22px;border-radius:10px;font-size:15px;font-weight:500">Sign in to Baskit</a>`,
-            '<p style="font-size:12.5px;color:#999;margin:24px 0 0">If you didn\'t request this, you can safely ignore it.</p>',
+            '<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:440px;margin:0 auto;padding:32px 24px;color:#1a1a1a">',
+            '<div style="font-weight:600;font-size:20px;letter-spacing:-0.02em;margin-bottom:18px">Baskit</div>',
+            '<p style="font-size:15px;line-height:1.5;color:#333;margin:0 0 8px">Hi,</p>',
+            '<p style="font-size:15px;line-height:1.5;color:#333;margin:0 0 20px">Someone (hopefully you) asked to sign in to Baskit with this email address. Tap the button and your basket will be saved to your account, safe on any device.</p>',
+            `<a href="${url}" style="display:inline-block;background:#16130f;color:#fafaf8;text-decoration:none;padding:13px 24px;border-radius:10px;font-size:15px;font-weight:500">Sign in to Baskit</a>`,
+            '<p style="font-size:13px;line-height:1.5;color:#666;margin:22px 0 6px">Or paste this link into your browser:</p>',
+            `<p style="font-size:13px;line-height:1.5;margin:0 0 22px;word-break:break-all"><a href="${url}" style="color:#3d7a68">${url}</a></p>`,
+            '<p style="font-size:13px;line-height:1.5;color:#888;margin:0 0 4px">This link works once and expires in 24 hours.</p>',
+            '<p style="font-size:13px;line-height:1.5;color:#888;margin:0">If you didn\'t ask to sign in, you can safely ignore this email and nothing will happen. Questions? Just reply.</p>',
+            '<p style="font-size:12px;color:#aaa;margin:24px 0 0">Baskit &middot; a universal wishlist and price tracker</p>',
             "</div>",
           ].join(""),
-          text: `Sign in to Baskit: ${url}\n\nThis link works once and expires in 24 hours. If you didn't request it, ignore this email.`,
+          text: `Hi,\n\nSomeone (hopefully you) asked to sign in to Baskit with this email address. Open this link to sign in and save your basket to your account:\n\n${url}\n\nThis link works once and expires in 24 hours. If you didn't ask to sign in, you can safely ignore this email. Questions? Just reply.\n\nBaskit - a universal wishlist and price tracker`,
         }),
       });
       if (!res.ok) throw new Error(`Resend send failed: ${res.status} ${await res.text()}`);
