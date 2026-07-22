@@ -195,7 +195,7 @@ model Moment {
   id           String    @id @default(cuid())
   userId       String
   itemId       String?
-  kind         String // target_hit|price_drop|sale|cooloff_done|back_in_stock|budget_window
+  kind         String // target_hit|price_drop|sale|cooloff_done|back_in_stock|budget_window|occasion_soon
   title        String
   body         String
   deeplink     String

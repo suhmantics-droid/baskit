@@ -16,6 +16,7 @@ const KIND_ICON: Record<string, string> = {
   cooloff_done: "⏳",
   back_in_stock: "📦",
   budget_window: "💷",
+  occasion_soon: "📅",
 };
 
 interface FeedMoment {

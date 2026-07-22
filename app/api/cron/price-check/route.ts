@@ -15,11 +15,12 @@
  */
 import { prisma } from "@/lib/db";
 import { extractFromUrl } from "@/lib/extract";
-import { evaluateMoments, type Moment as MomentCandidate } from "@/lib/moments";
+import { evaluateMoments } from "@/lib/moments";
+import { evaluateOccasion } from "@/lib/occasions";
 import { toDomainItem } from "@/lib/api/items";
 import { domainOf } from "@/lib/url";
 import { pushToUser } from "@/lib/push";
-import type { Stock } from "@/lib/types";
+import type { Stock, Item } from "@/lib/types";
 
 export const maxDuration = 60;
 
@@ -140,7 +141,60 @@ export async function GET(request: Request) {
     stats.momentsCreated += await recordMoments(item.userId, moments, stats);
   }
 
+  // Occasion reminders (P1): dated lists get a well-timed nudge with unbought
+  // count + remaining budget. Pure logic in lib/occasions; deduped per date so
+  // each occasion pings once. No fetching — cheap.
+  const dueLists = await prisma.list.findMany({
+    where: { dueDate: { not: null } },
+    select: {
+      id: true,
+      name: true,
+      emoji: true,
+      parentId: true,
+      cap: true,
+      dueDate: true,
+      ownerId: true,
+      items: { select: { item: { select: { id: true, bought: true, price: true } } } },
+    },
+    take: 500,
+  });
+  for (const l of dueLists) {
+    const domainList = {
+      id: l.id,
+      name: l.name,
+      emoji: l.emoji,
+      parentId: l.parentId,
+      cap: l.cap,
+      dueDate: l.dueDate ? l.dueDate.getTime() : null,
+    };
+    const items = l.items.map((il) => occasionItem(il.item));
+    const moment = evaluateOccasion(domainList, items, { now: Date.now() });
+    if (moment) {
+      stats.momentsCreated += await recordMoments(l.ownerId, [moment], stats);
+    }
+  }
+
   return Response.json({ ok: true, tookMs: Date.now() - started, ...stats });
+}
+
+/** Minimal Item for occasion evaluation — only `bought` and the latest price matter. */
+function occasionItem(row: { id: string; bought: boolean; price: number | null }): Item {
+  return {
+    id: row.id,
+    name: "",
+    currency: "GBP",
+    stock: "unknown",
+    tags: [],
+    status: "want",
+    priority: "nice",
+    cooldownDays: 0,
+    bought: row.bought,
+    fav: false,
+    createdAt: 0,
+    lists: [],
+    price: row.price,
+    prices: [],
+  };
 }
 
 /**
@@ -150,7 +204,16 @@ export async function GET(request: Request) {
  */
 async function recordMoments(
   userId: string,
-  moments: MomentCandidate[],
+  // Widened from MomentCandidate so per-list occasion moments (no itemId) go
+  // through the same dedupe + push path as per-item moments.
+  moments: Array<{
+    itemId?: string | null;
+    kind: string;
+    title: string;
+    body: string;
+    deeplink: string;
+    dedupeKey: string;
+  }>,
   stats: { pushed: number },
 ): Promise<number> {
   if (!moments.length) return 0;
@@ -162,7 +225,7 @@ async function recordMoments(
   const created = await prisma.moment.createMany({
     data: moments.map((m) => ({
       userId,
-      itemId: m.itemId,
+      itemId: m.itemId ?? null,
       kind: m.kind,
       title: m.title,
       body: m.body,
