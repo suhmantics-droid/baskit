@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
         // folder URLs for the demo player
         { source: "/demo", destination: "/demo/index.html" },
         { source: "/demo/", destination: "/demo/index.html" },
+        // marketing landing (shareable; the tool stays at / for testers)
+        { source: "/welcome", destination: "/welcome.html" },
         // Google Search Console file check — matches only google<hex>.html.
         // TEMPORARY: drop this and app/api/gsc once the property is verified.
         {
