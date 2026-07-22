@@ -138,7 +138,14 @@ export async function extractWithFallback(
   plainTimeoutMs = 8_000,
 ): Promise<ExtractOutcome> {
   const first = await extractFromUrl(url, plainTimeoutMs);
-  if (first.ok || (!first.blocked && !first.slow)) return first;
+  if (first.ok) return first;
+
+  // Escalate to stealth when the plain fetch reached the site but couldn't read
+  // a price: blocked (Argos/Currys), stalled (John Lewis), or a 200 that came
+  // back JS-rendered with no price in the HTML (Boots). A hard 404/410 or a
+  // network error means stealth won't help, so don't spend a credit on it.
+  const worthStealth = first.blocked || first.slow || first.status === 200;
+  if (!worthStealth) return first;
 
   const html = await fetchViaFirecrawl(url);
   if (!html) return first; // no key, or the stealth scrape also failed
