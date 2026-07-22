@@ -326,6 +326,17 @@
   .savebar.saved { border-color: var(--good); background: color-mix(in oklab, var(--good) 8%, var(--surface)); }
   .savebar .btn { flex: 0 0 auto; }
   @media (max-width: 620px) { .savebar .btn { width: 100%; justify-content: center; } }
+  /* Occasion banner — turns a dated list into a "when to order" nudge. */
+  #occasionBanner:empty { display: none; }
+  #occasionBanner { display: grid; gap: 8px; margin-bottom: 14px; }
+  .occ { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius-sm); border: 1px solid var(--line-strong); background: var(--surface-2); cursor: pointer; transition: border-color .12s, transform .12s; }
+  .occ:hover { border-color: var(--accent); transform: translateX(2px); }
+  .occ.urgent { border-color: var(--warn); background: color-mix(in oklab, var(--warn) 9%, var(--surface)); }
+  .occ-em { font-size: 22px; line-height: 1; }
+  .occ-txt { flex: 1; min-width: 0; font-size: 13px; line-height: 1.45; }
+  .occ-txt b { display: block; font-size: 14px; }
+  .occ-txt span { color: var(--ink-soft); }
+  .occ-arrow { color: var(--ink-faint); font-size: 20px; }
   .buynow { display: grid; gap: 8px; }
   .bn-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--surface-2); transition: border-color .12s, transform .12s; }
   .bn-row:hover { border-color: var(--good); transform: translateX(2px); }
@@ -400,6 +411,7 @@
       </div>
     </div>
     <div id="saveBar"></div>
+<div id="occasionBanner"></div>
 <div id="statsWrap"><div class="stats" id="stats"></div></div>
     <div id="planWrap"></div>
     <div id="segDash"></div>
@@ -764,7 +776,7 @@
     var p=currentProfile(); CUR=p.cur||"£";
     $("avatarBtn").textContent=initials(p.name);
     $("greeting").textContent=(p.name&&p.name!=="Me")?(p.name+"’s basket"):"Your basket";
-    renderSidebar(); renderMainHeader(); renderSaveBar(); renderStatusChips(); renderCatFilter(); renderPlan(); renderSegDash(); renderSublists(); renderGrid();renderListPickerData(); renderSalesBanner();
+    renderSidebar(); renderMainHeader(); renderSaveBar(); renderOccasions(); renderStatusChips(); renderCatFilter(); renderPlan(); renderSegDash(); renderSublists(); renderGrid();renderListPickerData(); renderSalesBanner();
   }
 
   /**
@@ -791,6 +803,41 @@ function renderSaveBar(){
   }
   var b=$("saveBarBtn");
   if(b) b.onclick=function(){ location.href="/api/auth/signin?callbackUrl=%2F"; };
+}
+
+/**
+ * Occasion banner: a dated list within the ordering window, with unbought
+ * items, becomes a "when to order" nudge. Mirrors lib/occasions on the account
+ * side, but client-side so the prototype's testers see it too. 3-day delivery
+ * buffer, 14-day lead — sensible defaults, tunable later.
+ */
+function renderOccasions(){
+  var box=$("occasionBanner"); if(!box||!db.current) return;
+  var BUFFER=3, LEAD=14, DAY=86400000, cands=[];
+  lists().forEach(function(l){
+    if(!l.due) return;
+    var dueMs=new Date(l.due+"T00:00:00").getTime();
+    var orderBy=dueMs-BUFFER*DAY, daysToOrderBy=daysBetween(orderBy,now());
+    if(daysToOrderBy>LEAD||daysToOrderBy<0) return;
+    var sub=itemsInSubtree(l.id), unbought=sub.filter(function(it){return !it.bought;});
+    if(!unbought.length) return;
+    var spent=sub.filter(function(it){return it.bought;}).reduce(function(s,it){return s+(Number(latestPrice(it))||0);},0);
+    cands.push({ l:l, orderBy:orderBy, daysToOrderBy:daysToOrderBy, daysToDate:daysBetween(dueMs,now()), unbought:unbought.length, total:sub.length, spent:spent });
+  });
+  if(!cands.length){ box.innerHTML=""; return; }
+  cands.sort(function(a,b){ return a.orderBy-b.orderBy; });
+  box.innerHTML=cands.slice(0,2).map(function(c){
+    var when=c.daysToDate<=0?"is today":(c.daysToDate===1?"is tomorrow":"is in "+c.daysToDate+" days");
+    var orderStr=new Date(c.orderBy).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+    var budget="";
+    if(c.l.cap!=null&&c.l.cap!==""){ var left=Number(c.l.cap)-c.spent; budget=left>=0?(" · "+money(left)+" of "+money(c.l.cap)+" left"):(" · "+money(-left)+" over "+money(c.l.cap)); }
+    return '<div class="occ'+(c.daysToOrderBy<=3?" urgent":"")+'" data-go="'+c.l.id+'">'
+      +'<div class="occ-em">'+(c.l.emoji||"📅")+'</div>'
+      +'<div class="occ-txt"><b>'+esc(c.l.name)+' '+when+'</b>'
+      +'<span>Order by '+orderStr+' to be safe · '+c.unbought+' of '+c.total+' still to buy'+budget+'</span></div>'
+      +'<div class="occ-arrow">&rsaquo;</div></div>';
+  }).join("");
+  Array.prototype.forEach.call(box.querySelectorAll(".occ"),function(el){ el.onclick=function(){ selectList(el.getAttribute("data-go")); }; });
 }
 
 function renderSidebar(){
