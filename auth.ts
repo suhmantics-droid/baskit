@@ -43,17 +43,20 @@ const providers: NextAuthConfig["providers"] = [
           // visible as a fallback (helps filters and users when the button
           // doesn't render).
           html: [
-            '<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:440px;margin:0 auto;padding:32px 24px;color:#1a1a1a">',
-            '<div style="font-weight:600;font-size:20px;letter-spacing:-0.02em;margin-bottom:18px">Baskit</div>',
-            '<p style="font-size:15px;line-height:1.5;color:#333;margin:0 0 8px">Hi,</p>',
-            '<p style="font-size:15px;line-height:1.5;color:#333;margin:0 0 20px">Someone (hopefully you) asked to sign in to Baskit with this email address. Tap the button and your basket will be saved to your account, safe on any device.</p>',
-            `<a href="${url}" style="display:inline-block;background:#16130f;color:#fafaf8;text-decoration:none;padding:13px 24px;border-radius:10px;font-size:15px;font-weight:500">Sign in to Baskit</a>`,
-            '<p style="font-size:13px;line-height:1.5;color:#666;margin:22px 0 6px">Or paste this link into your browser:</p>',
-            `<p style="font-size:13px;line-height:1.5;margin:0 0 22px;word-break:break-all"><a href="${url}" style="color:#3d7a68">${url}</a></p>`,
-            '<p style="font-size:13px;line-height:1.5;color:#888;margin:0 0 4px">This link works once and expires in 24 hours.</p>',
-            '<p style="font-size:13px;line-height:1.5;color:#888;margin:0">If you didn\'t ask to sign in, you can safely ignore this email and nothing will happen. Questions? Just reply.</p>',
-            '<p style="font-size:12px;color:#aaa;margin:24px 0 0">Baskit &middot; a universal wishlist and price tracker</p>',
-            "</div>",
+            // Warm ledger palette to match the brand: cream paper, rich warm
+            // ink, deep-green accent — not washed grey on white.
+            '<div style="font-family:Georgia,\'Iowan Old Style\',serif;background:#f2ebdc;padding:36px 20px">',
+            '<div style="max-width:440px;margin:0 auto;background:#fbf6ea;border:1px solid rgba(36,29,19,0.14);border-radius:16px;padding:32px 28px;color:#241d13">',
+            '<div style="font-weight:700;font-size:22px;letter-spacing:-0.02em;margin-bottom:20px">Baskit</div>',
+            '<p style="font-size:16px;line-height:1.55;color:#241d13;margin:0 0 8px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Hi,</p>',
+            '<p style="font-size:16px;line-height:1.55;color:#3a3227;margin:0 0 22px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Someone (hopefully you) asked to sign in to Baskit with this email address. Tap the button and your basket will be saved to your account, safe on any device.</p>',
+            `<a href="${url}" style="display:inline-block;background:#241d13;color:#fbf6ea;text-decoration:none;padding:14px 26px;border-radius:999px;font-size:15px;font-weight:600;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Sign in to Baskit</a>`,
+            '<p style="font-size:13px;line-height:1.5;color:#6b6051;margin:24px 0 6px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Or paste this link into your browser:</p>',
+            `<p style="font-size:12.5px;line-height:1.5;margin:0 0 24px;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"><a href="${url}" style="color:#0f5f4b">${url}</a></p>`,
+            '<p style="font-size:13px;line-height:1.5;color:#7a6e56;margin:0 0 5px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">This link works once and expires in 24 hours.</p>',
+            '<p style="font-size:13px;line-height:1.5;color:#7a6e56;margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">If you didn\'t ask to sign in, you can safely ignore this email and nothing will happen. Questions? Just reply.</p>',
+            '<p style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#9a8e74;margin:24px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">Baskit &middot; a universal wishlist and price tracker</p>',
+            "</div></div>",
           ].join(""),
           text: `Hi,\n\nSomeone (hopefully you) asked to sign in to Baskit with this email address. Open this link to sign in and save your basket to your account:\n\n${url}\n\nThis link works once and expires in 24 hours. If you didn't ask to sign in, you can safely ignore this email. Questions? Just reply.\n\nBaskit - a universal wishlist and price tracker`,
         }),
