@@ -11,9 +11,11 @@ import { toMinorUnits } from "@/lib/format";
 import { fromJsonLd } from "./jsonld";
 import { fromOg, fromMicrodata, fromRegex } from "./meta";
 import { ADAPTERS } from "./adapters";
+import { fetchViaFirecrawl } from "./firecrawl";
 import type { Extracted, ExtractOutcome, ExtractMethod, PartialExtract } from "./types";
 
 export type { Extracted, ExtractOutcome } from "./types";
+export { firecrawlConfigured } from "./firecrawl";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
@@ -122,4 +124,25 @@ export async function extractFromUrl(url: string, timeoutMs = 8_000): Promise<Ex
       slow: timedOut,
     };
   }
+}
+
+/**
+ * Plain fetch first; if the store blocked it or stalled, escalate to the
+ * Firecrawl stealth path (residential proxies) and run the same free parser
+ * over the returned HTML. Only blocked/slow outcomes escalate, so the 6/10
+ * retailers that already succeed never spend a credit. With no FIRECRAWL_API_KEY
+ * the escalation is a no-op and the honest first result stands.
+ */
+export async function extractWithFallback(
+  url: string,
+  plainTimeoutMs = 8_000,
+): Promise<ExtractOutcome> {
+  const first = await extractFromUrl(url, plainTimeoutMs);
+  if (first.ok || (!first.blocked && !first.slow)) return first;
+
+  const html = await fetchViaFirecrawl(url);
+  if (!html) return first; // no key, or the stealth scrape also failed
+  const extracted = extractFromHtml(html, url);
+  if (!extracted) return { ...first, note: "stealth fetched but no readable price" };
+  return { ok: true, status: 200, blocked: false, slow: false, extracted, note: "via stealth" };
 }

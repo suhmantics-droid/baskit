@@ -14,7 +14,7 @@
  * once the env var exists. Without the env var the route refuses to run.
  */
 import { prisma } from "@/lib/db";
-import { extractFromUrl } from "@/lib/extract";
+import { extractWithFallback } from "@/lib/extract";
 import { evaluateMoments } from "@/lib/moments";
 import { evaluateOccasion } from "@/lib/occasions";
 import { toDomainItem } from "@/lib/api/items";
@@ -93,7 +93,8 @@ export async function GET(request: Request) {
       break;
     }
     stats.attempted++;
-    const outcome = await extractFromUrl(item.url!, 15_000); // nobody is waiting overnight
+    // Nobody is waiting overnight — escalate blocked/slow stores to stealth.
+    const outcome = await extractWithFallback(item.url!, 15_000);
     const now = new Date();
     const ex = outcome.extracted;
     if (!ex) {

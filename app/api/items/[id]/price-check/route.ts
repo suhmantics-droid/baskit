@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 import { requireUser, UnauthorizedError, unauthorizedResponse } from "@/lib/session";
 import { serializeItem, toDomainItem } from "@/lib/api/items";
 import { scoreItem } from "@/lib/decision";
-import { extractFromUrl } from "@/lib/extract";
+import { extractWithFallback } from "@/lib/extract";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -20,7 +20,7 @@ export async function POST(_request: Request, ctx: Ctx) {
     if (!item) return Response.json({ error: "not_found" }, { status: 404 });
     if (!item.url) return Response.json({ error: "no_url" }, { status: 400 });
 
-    const outcome = await extractFromUrl(item.url);
+    const outcome = await extractWithFallback(item.url);
     const now = new Date();
     const ex = outcome.extracted;
     const priceChanged = ex != null && ex.priceMinor !== item.price;

@@ -9,7 +9,7 @@
  */
 import { z } from "zod";
 import { auth } from "@/auth";
-import { extractFromUrl } from "@/lib/extract";
+import { extractWithFallback } from "@/lib/extract";
 import { domainOf } from "@/lib/url";
 
 const bodySchema = z.object({
@@ -84,6 +84,8 @@ export async function POST(request: Request) {
   if (isPrivate(url)) {
     return Response.json({ error: "invalid_url" }, { status: 400 });
   }
-  const outcome = await extractFromUrl(url);
+  // Plain fetch first; blocked/slow stores escalate to the stealth path so
+  // Fetch works on Argos/Currys/John Lewis/Boots too (no-op without the key).
+  const outcome = await extractWithFallback(url);
   return Response.json({ ...outcome, domain: domainOf(url) });
 }
