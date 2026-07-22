@@ -60,11 +60,41 @@ export function Dashboard({ user }: DashboardProps) {
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const now = PAGE_LOADED_AT;
 
+  // Personalisation: greet by name, and collect it on first sign-in (magic-link
+  // only gives us an email). displayName drives the header/greeting live.
+  const [displayName, setDisplayName] = useState((user.name ?? "").trim());
+  const [needsName, setNeedsName] = useState(!user.name || user.name === "Me");
+  const [nameDraft, setNameDraft] = useState("");
+  const greetedRef = useRef(false);
+
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 2000);
+    toastTimer.current = setTimeout(() => setToast(""), 2600);
   }, []);
+
+  // Greet returning users by name (once per load). New users get the name
+  // prompt instead — that's their greeting.
+  useEffect(() => {
+    if (greetedRef.current || !user.name || user.name === "Me") return;
+    greetedRef.current = true;
+    const t = setTimeout(() => showToast(`👋 Welcome back, ${user.name}`), 600);
+    return () => clearTimeout(t);
+  }, [showToast, user.name]);
+
+  const saveName = useCallback(async () => {
+    const n = nameDraft.trim();
+    setNeedsName(false);
+    if (!n) return; // let them skip
+    try {
+      await api.patchMe({ name: n });
+      setDisplayName(n);
+      greetedRef.current = true; // don't also fire "welcome back" this session
+      showToast(`Lovely to meet you, ${n}! 👋`);
+    } catch {
+      showToast("Couldn't save your name, you can set it later in the menu");
+    }
+  }, [nameDraft, showToast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -300,12 +330,45 @@ export function Dashboard({ user }: DashboardProps) {
     } catch {}
   }, []);
 
-  const initial = (user.name || user.email || "?").trim().charAt(0).toUpperCase();
+  const initial = (displayName || user.email || "?").trim().charAt(0).toUpperCase();
   const loading = items === null || lists === null;
 
   return (
     <>
       <Tour />
+      {needsName && (
+        <>
+          <div className="overlay open" style={{ zIndex: 100 }} />
+          <div className="modal-wrap open" style={{ zIndex: 101 }}>
+            <div className="modal" style={{ maxWidth: 420 }}>
+              <div className="mhead">
+                <h2>Welcome to Baskit 🧺</h2>
+              </div>
+              <div className="mbody">
+                <div className="field">
+                  <label>What should we call you?</label>
+                  <input
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    placeholder="e.g. Stephanie"
+                    maxLength={80}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveName();
+                    }}
+                  />
+                </div>
+                <p className="hint" style={{ marginTop: -2 }}>
+                  We&rsquo;ll use it to say hello when you come back. You can change it any time.
+                </p>
+                <button className="btn" style={{ width: "100%" }} onClick={saveName}>
+                  {nameDraft.trim() ? "That’s me" : "Skip for now"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       <header className="app-header">
         <div className="bar">
           <button className="icon-btn hamb" title="Lists" onClick={() => setSidebarOpen((v) => !v)}>
@@ -349,9 +412,19 @@ export function Dashboard({ user }: DashboardProps) {
               </div>
               <div className={`menu${menuOpen ? " open" : ""}`}>
                 <div className="mi">
-                  <small>{user.email}</small>
+                  <small>{displayName ? `${displayName} · ${user.email}` : user.email}</small>
                 </div>
                 <div className="sep" />
+                <button
+                  className="mi"
+                  style={{ width: "100%", border: "none", background: "none" }}
+                  onClick={() => {
+                    setNameDraft(displayName);
+                    setNeedsName(true);
+                  }}
+                >
+                  ✏️ {displayName ? "Change your name" : "Set your name"}
+                </button>
                 <a className="mi" href="/api/me/export">
                   ⬇ Export my data
                 </a>
@@ -426,7 +499,7 @@ export function Dashboard({ user }: DashboardProps) {
           {view === "all" && (
             <div className="hero">
               <div>
-                <h1>{user.name && user.name !== "Me" ? `${user.name}’s basket` : "Your basket"}</h1>
+                <h1>{displayName && displayName !== "Me" ? `${displayName}’s basket` : "Your basket"}</h1>
                 <p>Your record. Your budget. The right time to buy.</p>
               </div>
               <button className="btn" onClick={() => setModal(null)}>
@@ -646,7 +719,7 @@ export function Dashboard({ user }: DashboardProps) {
           ) : counts.all === 0 ? (
             <div className="empty">
               <div className="ic">🧺</div>
-              <h3>Your basket is empty</h3>
+              <h3>{displayName && displayName !== "Me" ? `${displayName}, your basket is empty` : "Your basket is empty"}</h3>
               <p>Add the first thing you&rsquo;ve got your eye on — paste a product link and Baskit pulls the details.</p>
               <div style={{ marginTop: 16, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                 <button className="btn" onClick={() => setModal(null)}>
