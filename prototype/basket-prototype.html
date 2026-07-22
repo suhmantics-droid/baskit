@@ -647,7 +647,8 @@
           cloud.announced=true;
           if(db.profiles.length){ closeWrap("pWrap"); }
           render();
-          toast("Basket restored from your account ✓",3000);
+          var rp=currentProfile();
+          toast((rp&&rp.name&&rp.name!=="Me"?("👋 Welcome back, "+rp.name+" — your basket is restored ✓"):"Basket restored from your account ✓"),3200);
         } else if(db.profiles.length){
           pushCloud();
         }
@@ -1209,7 +1210,8 @@ function renderSidebar(){
   function renderGrid(){
     var list=visibleItems(), wrap=$("gridWrap");
     if(items().length===0){
-      wrap.innerHTML='<div class="empty"><div class="ic">🧺</div><h3>Your basket is empty</h3><p>Add the first thing you\'ve got your eye on.</p><div style="margin-top:16px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap"><button class="btn" id="empAdd">Add an item</button><button class="btn ghost" id="empSegs">✨ Pick segments</button><button class="btn ghost" id="empSeed">Load samples</button></div></div>';
+      var _pn=(currentProfile()&&currentProfile().name&&currentProfile().name!=="Me")?currentProfile().name:null;
+      wrap.innerHTML='<div class="empty"><div class="ic">🧺</div><h3>'+(_pn?(esc(_pn)+", your basket is empty"):"Your basket is empty")+'</h3><p>Add the first thing you\'ve got your eye on.</p><div style="margin-top:16px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap"><button class="btn" id="empAdd">Add an item</button><button class="btn ghost" id="empSegs">✨ Pick segments</button><button class="btn ghost" id="empSeed">Load samples</button></div></div>';
       $("empAdd").onclick=function(){ openAdd(); }; $("empSegs").onclick=function(){ openSegPicker(false); }; $("empSeed").onclick=seed; return;
     }
     if(list.length===0){ wrap.innerHTML='<div class="empty"><div class="ic">🔍</div><h3>Nothing here yet</h3><p>Add an item to this list, or change the filters.</p></div>'; return; }
@@ -1551,7 +1553,15 @@ function renderSidebar(){
   window.addEventListener("hashchange",handleHash);
   // ask the browser to protect local data from eviction (mitigates iOS/Safari cleanup)
   try{ if(navigator.storage&&navigator.storage.persist){ navigator.storage.persist(); } }catch(e){}
+  // Returning visitor? Greet them by name (a fresh first-run has no profile yet).
+  var returningVisitor = db.profiles.length > 0 && !!db.current;
   render(); handleHash(); maybeAutoRefresh(); syncCloud();
+  if (returningVisitor) {
+    var wp = currentProfile();
+    if (wp && wp.name && wp.name !== "Me") {
+      setTimeout(function(){ toast("👋 Welcome back, " + wp.name, 3200); }, 700);
+    }
+  }
 })();
 </script>
 <footer style="max-width:1320px;margin:26px auto 0;padding:20px 22px 30px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-faint);line-height:1.7">
