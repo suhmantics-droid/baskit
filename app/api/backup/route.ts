@@ -7,6 +7,7 @@
  */
 import { prisma } from "@/lib/db";
 import { requireUser, UnauthorizedError, unauthorizedResponse } from "@/lib/session";
+import { countItems, wouldWipeBasket } from "@/lib/backup-guard";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 // Raised from 1MB when photo-attach landed: items can carry ~20-50KB compressed
@@ -45,6 +46,20 @@ export async function PUT(request: Request) {
     if (!db || typeof db !== "object" || !("profiles" in (db as object))) {
       return Response.json({ error: "not_a_basket" }, { status: 400 });
     }
+
+    // Never let an empty basket flatten a populated one (see lib/backup-guard).
+    // Only read the stored copy when the incoming one is empty, so the common
+    // path stays a single write.
+    if (countItems(db) === 0) {
+      const existing = await prisma.user.findUnique({ where: { id }, select: { demoBackup: true } });
+      if (wouldWipeBasket(db, existing?.demoBackup)) {
+        return Response.json(
+          { error: "refusing_empty_overwrite", storedItems: countItems(existing?.demoBackup) },
+          { status: 409 },
+        );
+      }
+    }
+
     const at = new Date();
     await prisma.user.update({
       where: { id },

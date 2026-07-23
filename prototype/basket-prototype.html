@@ -645,12 +645,15 @@
 
   // ---------- cloud backup (sync-lite): signed-in visitors keep their basket ----------
   var cloud={ user:null, announced:false, pushTimer:null };
+  function countLocalItems(d){ var n=0; try{ var m=d&&d.items||{}; for(var k in m){ if(m[k]&&m[k].length) n+=m[k].length; } }catch(e){} return n; }
   function schedulePush(){ if(!cloud.user) return; clearTimeout(cloud.pushTimer); cloud.pushTimer=setTimeout(pushCloud,2000); }
   function pushCloud(){
     if(!cloud.user) return;
     try{
       fetch("/api/backup",{method:"PUT",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({db:db})}).then(function(r){
         if(r.ok&&!cloud.announced){ cloud.announced=true; toast("Your basket is saved to your account ✓",3000); }
+        // 409 = the server refused to let this empty basket replace a saved one
+        else if(r.status===409){ toast("Your saved basket is safe. Reload the page to bring it back.",6000); }
       }).catch(function(){});
     }catch(e){}
   }
@@ -671,7 +674,9 @@
           var rp=currentProfile();
           toast((rp&&rp.name&&rp.name!=="Me"?("👋 Welcome back, "+rp.name+" — your basket is restored ✓"):"Basket restored from your account ✓"),3200);
         } else if(db.profiles.length){
-          pushCloud();
+          // Never push an empty local basket over a populated cloud one: a slow
+          // /api/backup response racing a fresh profile would otherwise wipe it.
+          if(countLocalItems(db)>0||countLocalItems(b&&b.db)===0) pushCloud();
         }
         renderSaveBar(); // signed in now — flip the bar from warning to confirmed
       }).catch(function(){ /* signed out or offline: local-only, as before */ });
