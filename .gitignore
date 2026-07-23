@@ -43,3 +43,8 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# scratch diagnostic scripts
+diag.mjs
+shot.mjs
+shot-avatar.mjs
