@@ -235,6 +235,7 @@
   .seg button { flex: 1; padding: 9px; background: var(--surface); border: none; font-size: 13px; color: var(--ink-soft); border-right: 1px solid var(--line); }
   .seg button:last-child { border-right: none; }
   .seg button.on { background: var(--ink); color: var(--bg); }
+  .wantdial button[data-want="1"].on { background: #e0426e; color: #fff; }
   .del { color: var(--bad); background: none; border: none; font-size: 13px; padding: 8px 4px; }
   .del:hover { text-decoration: underline; }
   .listpick { border: 1px solid var(--line-strong); border-radius: 10px; max-height: 168px; overflow-y: auto; padding: 6px; }
@@ -467,6 +468,7 @@
       </div>
       <div class="field"><label>Category</label><input id="f_cat" list="catList" placeholder="e.g. Holiday, Tech, Home" /><datalist id="catList"></datalist></div>
       <div class="field"><label>Status</label><div class="seg" id="statusSeg"><button data-v="want" class="on">Want now</button><button data-v="later">Save for later</button><button data-v="research">Researching</button></div></div>
+      <div class="field"><label>How much do you want it?</label><div class="seg wantdial" id="wantDial"><button type="button" data-want="0" class="on">♡ Nice to have</button><button type="button" data-want="1">♥ Must have</button></div></div>
       <div class="field"><label>Cool off before deciding</label><select id="f_cooldown"><option value="0">No cool-off</option><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></div>
       <details class="drop" id="listDrop">
         <summary><span>Add to lists</span><em id="listSummary">none yet</em></summary>
@@ -481,10 +483,7 @@
           <div class="field"><label>Target price</label><input id="f_target" type="number" step="0.01" placeholder="optional" /></div>
           <div class="field"><label>Stock</label><select id="f_stock"><option value="unknown">Unknown</option><option value="in">In stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></select></div>
         </div>
-        <div class="row2">
-          <div class="field"><label>How badly?</label><select id="f_priority"><option value="must">Must have</option><option value="nice" selected>Nice to have</option><option value="impulse">Impulse</option></select></div>
-          <div class="field"><label>Discount code</label><input id="f_code" placeholder="e.g. SUMMER15" /></div>
-        </div>
+        <div class="field"><label>Discount code</label><input id="f_code" placeholder="e.g. SUMMER15" /></div>
         <div class="field"><label>Tags (group things across lists)</label><input id="f_tags" placeholder="e.g. keval, holiday" />
           <div class="chips" id="tagSuggest" style="margin-top:7px"></div>
         </div>
@@ -1297,7 +1296,7 @@ function renderSidebar(){
   function catGlyph(c){ c=(c||"").toLowerCase(); if(/tech|electron|gadget|audio/.test(c))return"💻"; if(/home|kitchen|furn/.test(c))return"🏠"; if(/fashion|cloth|shoe|wear/.test(c))return"👕"; if(/book|read/.test(c))return"📚"; if(/beauty|care/.test(c))return"🧴"; if(/gift/.test(c))return"🎁"; if(/game|toy/.test(c))return"🎮"; return"🛍️"; }
 
   function toggleBought(id){ var it=items().filter(function(i){return i.id===id;})[0]; if(!it) return; it.bought=!it.bought; it.boughtAt=it.bought?now():null; save(); render(); if(detailId===id) openDetail(id); toast(it.bought?"Marked as bought":"Marked not bought"); }
-  function toggleFav(id){ var it=items().filter(function(i){return i.id===id;})[0]; if(!it) return; it.fav=!it.fav; save(); render(); if(detailId===id) openDetail(id); toast(it.fav?"Added to favourites ♥":"Removed from favourites"); }
+  function toggleFav(id){ var it=items().filter(function(i){return i.id===id;})[0]; if(!it) return; it.fav=!it.fav; it.priority=it.fav?"must":"nice"; save(); render(); if(detailId===id) openDetail(id); toast(it.fav?"Must-have ♥":"Set to nice to have"); }
 
   function copyCode(id){ var it=items().filter(function(i){return i.id===id;})[0]; if(!it||!it.code) return; var done=function(){ toast("Copied “"+it.code+"”"); }; try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(it.code).then(done,fb); } else fb(); }catch(e){ fb(); } function fb(){ var t=document.createElement("textarea"); t.value=it.code; document.body.appendChild(t); t.select(); try{document.execCommand("copy");}catch(e){} document.body.removeChild(t); done(); } }
 
@@ -1320,7 +1319,6 @@ function renderSidebar(){
     body+='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px"><span class="hint">'+(it.url?(it.lastChecked?("Price checked "+agoText(it.lastChecked)):"Not checked yet"):"No link to auto-check")+'</span>'+(it.url?'<button class="btn ghost sm" id="recheckBtn">↻ Check price now</button>':'')+'</div>';
     body+='</div>';
     body+='<div><div class="sec-t">Details</div>';
-    body+='<div class="kv"><span class="k">Priority</span><span>'+({must:"Must have",nice:"Nice to have",impulse:"Impulse"}[it.priority]||"—")+'</span></div>';
     body+='<div class="kv"><span class="k">Stock</span><span>'+({in:"In stock",low:"Low stock",out:"Out of stock",unknown:"Unknown"}[it.stock||"unknown"])+'</span></div>';
     if(it.code) body+='<div class="kv"><span class="k">Discount code</span><button class="code" data-copy="'+it.id+'">🎟 '+esc(it.code)+' copy</button></div>';
     var lNames=(it.lists||[]).map(function(id){ var l=listById(id); return l?'<span class="tag list" data-goto="'+id+'" style="cursor:pointer">'+(l.emoji||"")+' '+esc(l.name)+'</span>':''; }).join(" ")||'<span class="hint">None</span>';
@@ -1560,7 +1558,7 @@ function renderSidebar(){
     else if(filter.list!=="all") pickSel[filter.list]=true;
     $("modalTitle").textContent="Add an item"; $("deleteBtn").style.visibility="hidden";
     ["f_name","f_url","f_img","f_price","f_target","f_tags","f_code","f_notes","f_cat","lp_new"].forEach(function(k){ $(k).value=""; });
-    $("f_cur").value=CUR; $("f_stock").value="unknown"; $("f_priority").value="nice"; $("f_cooldown").value="7"; setSeg("want"); renderTagSuggest();
+    $("f_cur").value=CUR; $("f_stock").value="unknown"; setWant(0); $("f_cooldown").value="7"; setSeg("want"); renderTagSuggest();
     if(prefill.name)$("f_name").value=prefill.name; if(prefill.url)$("f_url").value=prefill.url; if(prefill.price)$("f_price").value=prefill.price; if(prefill.img)$("f_img").value=prefill.img;
     renderListPicker(); openWrap("modalWrap"); setTimeout(function(){ $((prefill.url&&!prefill.name)?"f_url":"f_name").focus(); },50);
   }
@@ -1571,11 +1569,15 @@ function renderSidebar(){
     $("f_name").value=it.name||""; $("f_url").value=it.url||""; $("f_img").value=it.img||"";
     $("f_price").value=(latestPrice(it)==null?"":latestPrice(it)); $("f_cur").value=it.cur||CUR; $("f_target").value=(it.targetPrice==null?"":it.targetPrice);
     $("f_stock").value=it.stock||"unknown"; $("f_cat").value=it.cat||""; $("f_tags").value=(it.tags||[]).join(", "); $("f_code").value=it.code||""; renderTagSuggest();
-    $("f_priority").value=it.priority||"nice"; $("f_cooldown").value=String(it.cooldownDays||0); $("f_notes").value=it.notes||""; $("lp_new").value="";
+    setWant(it.fav?1:0); $("f_cooldown").value=String(it.cooldownDays||0); $("f_notes").value=it.notes||""; $("lp_new").value="";
     setSeg(it.status||"want"); renderListPicker(); openWrap("modalWrap");
   }
   function setSeg(v){ segStatus=v; Array.prototype.forEach.call($("statusSeg").querySelectorAll("button"),function(b){ b.classList.toggle("on",b.getAttribute("data-v")===v); }); }
+  // the heart IS the want level: 1 = must-have (favourite), 0 = nice to have
+  var formWant=0;
+  function setWant(v){ formWant=v?1:0; Array.prototype.forEach.call($("wantDial").querySelectorAll("button"),function(b){ b.classList.toggle("on",Number(b.getAttribute("data-want"))===formWant); }); }
   Array.prototype.forEach.call($("statusSeg").querySelectorAll("button"),function(b){ b.onclick=function(){ setSeg(b.getAttribute("data-v")); }; });
+  Array.prototype.forEach.call($("wantDial").querySelectorAll("button"),function(b){ b.onclick=function(){ setWant(Number(b.getAttribute("data-want"))); }; });
 
   function saveItem(){
     var name=$("f_name").value.trim(); if(!name){ $("f_name").focus(); toast("Give it a name first"); return; }
@@ -1587,7 +1589,7 @@ function renderSidebar(){
     it.targetPrice=$("f_target").value===""?null:parseFloat($("f_target").value); it.stock=$("f_stock").value; it.cat=$("f_cat").value.trim();
     it.tags=$("f_tags").value.split(",").map(function(s){return s.trim();}).filter(Boolean);
     it.lists=Object.keys(pickSel).filter(function(k){return pickSel[k]&&listById(k);});
-    it.code=$("f_code").value.trim(); it.status=segStatus; it.priority=$("f_priority").value; it.cooldownDays=cd;
+    it.code=$("f_code").value.trim(); it.status=segStatus; it.fav=formWant===1; it.priority=formWant===1?"must":"nice"; it.cooldownDays=cd;
     if(cd>0&&(cd!==wasCd||!wasWait)) it.waitUntil=now()+cd*86400000; if(cd===0) it.waitUntil=null;
     if(!editingId){ it.price=newPrice; it.priceHistory=(newPrice!=null)?[{t:now(),p:newPrice}]:[]; }
     else if(newPrice!=null&&newPrice!==oldPrice){ logPrice(it,newPrice); }
