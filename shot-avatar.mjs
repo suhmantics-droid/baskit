@@ -1,0 +1,10 @@
+import { chromium } from "@playwright/test";
+const [, , input, output] = process.argv;
+const browser = await chromium.launch();
+const page = await browser.newPage({ deviceScaleFactor: 1 });
+await page.setViewportSize({ width: 512, height: 512 });
+await page.goto("file:///" + input.replace(/\\/g, "/"), { waitUntil: "networkidle" });
+await page.waitForTimeout(300);
+await page.screenshot({ path: output, clip: { x: 0, y: 0, width: 512, height: 512 } });
+await browser.close();
+console.log("wrote " + output);

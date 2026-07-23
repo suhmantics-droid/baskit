@@ -9,7 +9,10 @@ import { prisma } from "@/lib/db";
 import { requireUser, UnauthorizedError, unauthorizedResponse } from "@/lib/session";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
-const MAX_BYTES = 1_000_000; // ~1MB is hundreds of items; plenty for the demo
+// Raised from 1MB when photo-attach landed: items can carry ~20-50KB compressed
+// photos, so a real basket with pictures needs headroom. 4MB stays inside
+// Vercel's request-body limit with margin.
+const MAX_BYTES = 4_000_000;
 
 export async function GET() {
   try {

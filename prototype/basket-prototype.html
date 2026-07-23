@@ -459,6 +459,7 @@
         <div class="field"><label>Link (paste a product URL)</label><input id="f_url" placeholder="https://…" /></div>
         <button class="btn ghost sm" id="fetchBtn" title="Pull title, image & price from the link" style="height:40px">Fetch</button>
       </div>
+      <div style="margin-top:-6px"><button class="btn ghost sm" id="photoBtn" type="button">📷 Add from a photo or screenshot</button><input type="file" id="f_photo" accept="image/*" style="display:none" /></div>
       <div class="field"><label>What is it?</label><input id="f_name" placeholder="e.g. Sony WH-1000XM6 headphones" /></div>
       <div class="row2">
         <div class="field"><label>Price</label><input id="f_price" type="number" step="0.01" placeholder="0.00" /></div>
@@ -484,7 +485,9 @@
           <div class="field"><label>How badly?</label><select id="f_priority"><option value="must">Must have</option><option value="nice" selected>Nice to have</option><option value="impulse">Impulse</option></select></div>
           <div class="field"><label>Discount code</label><input id="f_code" placeholder="e.g. SUMMER15" /></div>
         </div>
-        <div class="field"><label>Tags</label><input id="f_tags" placeholder="e.g. winter, gift" /></div>
+        <div class="field"><label>Tags (group things across lists)</label><input id="f_tags" placeholder="e.g. keval, holiday" />
+          <div class="chips" id="tagSuggest" style="margin-top:7px"></div>
+        </div>
       </details>
     </div>
     <div class="mfoot">
@@ -1007,7 +1010,7 @@ function renderSidebar(){
   }
 
   // ---------- segments (top-level lists with a CX layer) ----------
-  var SEG_PRESETS=[["Beauty","💄"],["Clothes","👗"],["Home","🏠"],["Gifts","🎁"],["Christmas","🎄"],["Birthdays","🎂"],["Tech","📱"],["Kids","🧸"],["Fitness","💪"],["Travel","✈️"],["Books","📚"],["Food & drink","🍷"]];
+  var SEG_PRESETS=[["Beauty","💄"],["Clothes","👗"],["Home","🏠"],["Gifts","🎁"],["Christmas","🎄"],["Birthdays","🎂"],["Tech","📱"],["Kids","🧸"],["Fitness","💪"],["Holiday","🏖"],["Books","📚"],["Food & drink","🍷"]];
   var segSel={}, segCustom=[];
   function openSegPicker(first){
     segSel={}; segCustom=[];
@@ -1251,6 +1254,8 @@ function renderSidebar(){
     if(list.length===0){ wrap.innerHTML='<div class="empty"><div class="ic">🔍</div><h3>Nothing here yet</h3><p>Add an item to this list, or change the filters.</p></div>'; return; }
     wrap.innerHTML='<div class="grid">'+list.map(cardHtml).join("")+'</div>';
     Array.prototype.forEach.call(wrap.querySelectorAll(".card"),function(el){ el.onclick=function(){ openDetail(el.getAttribute("data-id")); }; });
+    // tap a #tag chip to see everything with that tag across every list
+    Array.prototype.forEach.call(wrap.querySelectorAll("[data-qtag]"),function(el){ el.onclick=function(e){ e.stopPropagation(); var t=el.getAttribute("data-qtag"); filter.q=t; $("search").value=t; renderGrid(); window.scrollTo(0,0); toast("Showing everything tagged #"+t); }; });
     Array.prototype.forEach.call(wrap.querySelectorAll("[data-copy]"),function(el){ el.onclick=function(e){ e.stopPropagation(); copyCode(el.getAttribute("data-copy")); }; });
     Array.prototype.forEach.call(wrap.querySelectorAll("a.open"),function(el){ el.onclick=function(e){ e.stopPropagation(); }; });
     Array.prototype.forEach.call(wrap.querySelectorAll("[data-buy]"),function(el){ el.onclick=function(e){ e.stopPropagation(); toggleBought(el.getAttribute("data-buy")); }; });
@@ -1262,7 +1267,7 @@ function renderSidebar(){
     var stockMap={ in:["in","In stock"], low:["low","Low stock"], out:["out","Out of stock"], unknown:["unk","Stock unknown"] };
     var sk=stockMap[it.stock||"unknown"];
     var img=it.img?'<img src="'+esc(it.img)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"/><div class="ph" style="display:none">'+catGlyph(it.cat)+'</div>':'<div class="ph">'+catGlyph(it.cat)+'</div>';
-    var tags=(it.tags||[]).slice(0,2).map(function(t){ return '<span class="tag">#'+esc(t)+'</span>'; }).join("");
+    var tags=(it.tags||[]).slice(0,2).map(function(t){ return '<span class="tag" data-qtag="'+esc(t)+'" title="See everything tagged #'+esc(t)+'" style="cursor:pointer">#'+esc(t)+'</span>'; }).join("");
     var listChips=(it.lists||[]).slice(0,2).map(function(id){ var l=listById(id); return l?'<span class="tag list">'+(l.emoji||"")+' '+esc(l.name)+'</span>':''; }).join("");
     var price=latestPrice(it), was=firstPrice(it);
     var moved=(was!=null&&price!=null&&Number(was)!==Number(price));
@@ -1408,6 +1413,59 @@ function renderSidebar(){
   function fetchMicrolink(url){ var ctrl; try{ctrl=new AbortController();}catch(e){} var to=setTimeout(function(){ if(ctrl)ctrl.abort(); },7000); return fetch("https://api.microlink.io/?meta=true&url="+encodeURIComponent(url), ctrl?{signal:ctrl.signal}:{}).then(function(r){ return r.json(); }).then(function(j){ clearTimeout(to); if(!j||j.status!=="success"||!j.data) throw new Error("nodata"); var dt=j.data; return { title:dt.title||"", img:(dt.image&&dt.image.url)||(dt.logo&&dt.logo.url)||"", price:extractPrice(dt), cur:null, stock:null, confident:false, description:dt.description||"" }; }); }
   function fetchMeta(url){ return fetchOwn(url).catch(function(){ return fetchMicrolink(url); }); }
 
+  // Add from a photo/screenshot (tester behaviour: products live in the photo
+  // library). Compressed hard client-side (max 480px JPEG) so a photo costs
+  // ~20-50KB — small enough for localStorage and the cloud backup.
+  function compressPhoto(file){
+    return new Promise(function(res,rej){
+      var r=new FileReader();
+      r.onload=function(){
+        var img=new Image();
+        img.onload=function(){
+          var MAX=480, w=img.width, h=img.height, s=Math.min(1, MAX/Math.max(w,h));
+          var c=document.createElement("canvas"); c.width=Math.max(1,Math.round(w*s)); c.height=Math.max(1,Math.round(h*s));
+          c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+          res(c.toDataURL("image/jpeg",0.7));
+        };
+        img.onerror=rej; img.src=r.result;
+      };
+      r.onerror=rej; r.readAsDataURL(file);
+    });
+  }
+  /**
+   * Tag suggestions (Sagar: hashtag-style people/theme tags — #keval across
+   * Kev's birthday AND Christmas). Most-used tags appear as tap-to-toggle
+   * chips under the input; no extra fields.
+   */
+  function currentFormTags(){ return $("f_tags").value.split(",").map(function(t){return t.trim().toLowerCase();}).filter(Boolean); }
+  function renderTagSuggest(){
+    var box=$("tagSuggest"); if(!box) return;
+    var counts={}; items().forEach(function(it){ (it.tags||[]).forEach(function(t){ t=String(t).toLowerCase(); counts[t]=(counts[t]||0)+1; }); });
+    var top=Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; }).slice(0,8);
+    if(!top.length){ box.innerHTML='<span class="hint">Tags you use will appear here to reuse with a tap</span>'; return; }
+    var cur=currentFormTags();
+    box.innerHTML=top.map(function(t){ return '<button type="button" class="chip'+(cur.indexOf(t)>-1?" active":"")+'" data-tsg="'+esc(t)+'">#'+esc(t)+'</button>'; }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll("[data-tsg]"),function(b){
+      b.onclick=function(){
+        var t=b.getAttribute("data-tsg"), cur=currentFormTags(), i=cur.indexOf(t);
+        if(i>-1) cur.splice(i,1); else cur.push(t);
+        $("f_tags").value=cur.join(", ");
+        renderTagSuggest();
+      };
+    });
+  }
+  $("f_tags").addEventListener("input",renderTagSuggest);
+
+  $("photoBtn").onclick=function(){ $("f_photo").click(); };
+  $("f_photo").onchange=function(e){
+    var f=e.target.files&&e.target.files[0]; if(!f) return;
+    compressPhoto(f).then(function(dataUri){
+      $("f_img").value=dataUri;
+      toast("📷 Photo attached ("+Math.round(dataUri.length/1024)+"KB) — it shows on the item card");
+    }).catch(function(){ toast("Couldn't read that photo — try a different one"); });
+    e.target.value="";
+  };
+
   $("fetchBtn").onclick=function(){ var url=$("f_url").value.trim(); if(!url){ $("f_url").focus(); toast("Paste a product link first"); return; } var btn=$("fetchBtn"); btn.innerHTML='<span class="spin"></span>'; btn.disabled=true; var slowHint=setTimeout(function(){ toast("Reading the store, one moment…",4000); },3500);
     fetchMeta(url).then(function(m){ clearTimeout(slowHint); btn.innerHTML="Fetch"; btn.disabled=false;
       if(m.title&&!$("f_name").value) $("f_name").value=m.title;
@@ -1502,7 +1560,7 @@ function renderSidebar(){
     else if(filter.list!=="all") pickSel[filter.list]=true;
     $("modalTitle").textContent="Add an item"; $("deleteBtn").style.visibility="hidden";
     ["f_name","f_url","f_img","f_price","f_target","f_tags","f_code","f_notes","f_cat","lp_new"].forEach(function(k){ $(k).value=""; });
-    $("f_cur").value=CUR; $("f_stock").value="unknown"; $("f_priority").value="nice"; $("f_cooldown").value="7"; setSeg("want");
+    $("f_cur").value=CUR; $("f_stock").value="unknown"; $("f_priority").value="nice"; $("f_cooldown").value="7"; setSeg("want"); renderTagSuggest();
     if(prefill.name)$("f_name").value=prefill.name; if(prefill.url)$("f_url").value=prefill.url; if(prefill.price)$("f_price").value=prefill.price; if(prefill.img)$("f_img").value=prefill.img;
     renderListPicker(); openWrap("modalWrap"); setTimeout(function(){ $((prefill.url&&!prefill.name)?"f_url":"f_name").focus(); },50);
   }
@@ -1512,7 +1570,7 @@ function renderSidebar(){
     pickSel={}; (it.lists||[]).forEach(function(l){ pickSel[l]=true; });
     $("f_name").value=it.name||""; $("f_url").value=it.url||""; $("f_img").value=it.img||"";
     $("f_price").value=(latestPrice(it)==null?"":latestPrice(it)); $("f_cur").value=it.cur||CUR; $("f_target").value=(it.targetPrice==null?"":it.targetPrice);
-    $("f_stock").value=it.stock||"unknown"; $("f_cat").value=it.cat||""; $("f_tags").value=(it.tags||[]).join(", "); $("f_code").value=it.code||"";
+    $("f_stock").value=it.stock||"unknown"; $("f_cat").value=it.cat||""; $("f_tags").value=(it.tags||[]).join(", "); $("f_code").value=it.code||""; renderTagSuggest();
     $("f_priority").value=it.priority||"nice"; $("f_cooldown").value=String(it.cooldownDays||0); $("f_notes").value=it.notes||""; $("lp_new").value="";
     setSeg(it.status||"want"); renderListPicker(); openWrap("modalWrap");
   }
