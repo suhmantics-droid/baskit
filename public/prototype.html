@@ -214,7 +214,7 @@
 
   .overlay { position: fixed; inset: 0; background: rgba(20,16,10,.42); backdrop-filter: blur(2px); z-index: 60; display: none; }
   .overlay.open { display: block; }
-  .modal-wrap { position: fixed; inset: 0; z-index: 61; display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+  .modal-wrap { position: fixed; inset: 0; z-index: 70; display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
   .modal-wrap.open { display: flex; }
   .modal { background: var(--surface); width: 100%; max-width: 540px; border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--line); }
   .modal .mhead { padding: 18px 22px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
@@ -238,6 +238,16 @@
   .del { color: var(--bad); background: none; border: none; font-size: 13px; padding: 8px 4px; }
   .del:hover { text-decoration: underline; }
   .listpick { border: 1px solid var(--line-strong); border-radius: 10px; max-height: 168px; overflow-y: auto; padding: 6px; }
+  /* collapsible form groups: lists picker + more options (tester: form felt busy) */
+  .drop { border: 1px solid var(--line-strong); border-radius: 10px; }
+  .drop summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 11px 13px; font-size: 13.5px; font-weight: 600; }
+  .drop summary::-webkit-details-marker { display: none; }
+  .drop summary::after { content: "▾"; color: var(--ink-faint); margin-left: 2px; transition: transform .15s; }
+  .drop[open] summary::after { transform: rotate(180deg); }
+  .drop summary em { font-style: normal; color: var(--ink-faint); font-weight: 400; font-size: 12px; margin-left: auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drop > *:not(summary) { margin: 0 12px 12px; }
+  .drop .field { margin-top: 10px; }
+  .drop .listpick { border-color: var(--line); }
   .lp-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 7px; font-size: 13.5px; }
   .lp-row:hover { background: var(--surface-2); }
   .lp-row input { width: auto; }
@@ -412,6 +422,7 @@
     </div>
     <div id="saveBar"></div>
 <div id="occasionBanner"></div>
+<div id="homeSwitch"></div>
 <div id="statsWrap"><div class="stats" id="stats"></div></div>
     <div id="planWrap"></div>
     <div id="segDash"></div>
@@ -449,27 +460,32 @@
         <button class="btn ghost sm" id="fetchBtn" title="Pull title, image & price from the link" style="height:40px">Fetch</button>
       </div>
       <div class="field"><label>What is it?</label><input id="f_name" placeholder="e.g. Sony WH-1000XM6 headphones" /></div>
-      <div class="field"><label>Image URL (optional)</label><input id="f_img" placeholder="https://…/image.jpg" /></div>
-      <div class="row3">
+      <div class="row2">
         <div class="field"><label>Price</label><input id="f_price" type="number" step="0.01" placeholder="0.00" /></div>
         <div class="field"><label>Currency</label><select id="f_cur"><option>£</option><option>$</option><option>€</option><option>₹</option><option>¥</option></select></div>
-        <div class="field"><label>Target price</label><input id="f_target" type="number" step="0.01" placeholder="optional" /></div>
       </div>
-      <div class="row2">
-        <div class="field"><label>Stock</label><select id="f_stock"><option value="unknown">Unknown</option><option value="in">In stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></select></div>
-        <div class="field"><label>Category</label><input id="f_cat" list="catList" placeholder="e.g. Tech, Home" /><datalist id="catList"></datalist></div>
-      </div>
-      <div class="field"><label>Add to lists</label><div class="listpick" id="listPick"></div>
-        <div class="lp-add"><input id="lp_new" placeholder="Create a new list…" /><button class="btn ghost sm" id="lp_addBtn">Add</button></div>
-      </div>
-      <div class="field"><label>Tags</label><input id="f_tags" placeholder="e.g. winter, gift" /></div>
-      <div class="field"><label>Discount code (optional)</label><input id="f_code" placeholder="e.g. SUMMER15" /></div>
+      <div class="field"><label>Category</label><input id="f_cat" list="catList" placeholder="e.g. Holiday, Tech, Home" /><datalist id="catList"></datalist></div>
       <div class="field"><label>Status</label><div class="seg" id="statusSeg"><button data-v="want" class="on">Want now</button><button data-v="later">Save for later</button><button data-v="research">Researching</button></div></div>
-      <div class="row2">
-        <div class="field"><label>How badly?</label><select id="f_priority"><option value="must">Must have</option><option value="nice" selected>Nice to have</option><option value="impulse">Impulse</option></select></div>
-        <div class="field"><label>Cool off before deciding</label><select id="f_cooldown"><option value="0">No cool-off</option><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></div>
-      </div>
+      <div class="field"><label>Cool off before deciding</label><select id="f_cooldown"><option value="0">No cool-off</option><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></div>
+      <details class="drop" id="listDrop">
+        <summary><span>Add to lists</span><em id="listSummary">none yet</em></summary>
+        <div class="listpick" id="listPick"></div>
+        <div class="lp-add"><input id="lp_new" placeholder="Create a new list…" /><button class="btn ghost sm" id="lp_addBtn">Add</button></div>
+      </details>
       <div class="field"><label>Notes (optional)</label><textarea id="f_notes" rows="2" placeholder="Colour, size, alternatives…"></textarea></div>
+      <details class="drop" id="moreOpts">
+        <summary><span>More options</span><em>image · target price · stock · tags · code</em></summary>
+        <div class="field"><label>Image URL</label><input id="f_img" placeholder="https://…/image.jpg" /></div>
+        <div class="row2">
+          <div class="field"><label>Target price</label><input id="f_target" type="number" step="0.01" placeholder="optional" /></div>
+          <div class="field"><label>Stock</label><select id="f_stock"><option value="unknown">Unknown</option><option value="in">In stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></select></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>How badly?</label><select id="f_priority"><option value="must">Must have</option><option value="nice" selected>Nice to have</option><option value="impulse">Impulse</option></select></div>
+          <div class="field"><label>Discount code</label><input id="f_code" placeholder="e.g. SUMMER15" /></div>
+        </div>
+        <div class="field"><label>Tags</label><input id="f_tags" placeholder="e.g. winter, gift" /></div>
+      </details>
     </div>
     <div class="mfoot">
       <button class="del" id="deleteBtn" style="visibility:hidden">Delete</button>
@@ -506,7 +522,10 @@
     <div class="mhead"><h2>New profile</h2><button class="close" id="pClose">&times;</button></div>
     <div class="mbody">
       <div class="field"><label>Your name</label><input id="p_name" placeholder="e.g. Alex" /></div>
-      <div class="field"><label>Monthly budget for wants (optional)</label><input id="p_budget" type="number" placeholder="e.g. 200" /></div>
+      <div class="row2">
+        <div class="field"><label>Your currency</label><select id="p_cur"><option selected>£</option><option>$</option><option>€</option><option>₹</option><option>¥</option></select></div>
+        <div class="field"><label>Monthly budget (optional)</label><input id="p_budget" type="number" placeholder="e.g. 200" /></div>
+      </div>
     </div>
     <div class="mfoot"><span></span><button class="btn" id="pSave">Create profile</button></div>
   </div>
@@ -683,7 +702,7 @@
 
   function openProfileModal(first){ $("p_name").value=""; $("p_budget").value=""; openWrap("pWrap"); $("pClose").style.visibility=first?"hidden":"visible"; setTimeout(function(){ $("p_name").focus(); },50); }
   $("pClose").onclick=function(){ closeWrap("pWrap"); };
-  $("pSave").onclick=function(){ var name=$("p_name").value.trim()||"Me"; var budget=parseFloat($("p_budget").value)||0; var p={id:newId("pr"),name:name,budget:budget}; db.profiles.push(p); db.current=p.id; itemsFor(p.id); listsFor(p.id); save(); closeWrap("pWrap"); render(); openSegPicker(true); };
+  $("pSave").onclick=function(){ var name=$("p_name").value.trim()||"Me"; var budget=parseFloat($("p_budget").value)||0; var p={id:newId("pr"),name:name,budget:budget,cur:($("p_cur")&&$("p_cur").value)||"£"}; db.profiles.push(p); db.current=p.id; itemsFor(p.id); listsFor(p.id); save(); closeWrap("pWrap"); render(); openSegPicker(true); };
 
   $("avatarBtn").onclick=function(e){ e.stopPropagation(); buildProfileMenu(); $("profileMenu").classList.toggle("open"); };
   document.addEventListener("click",function(){ $("profileMenu").classList.remove("open"); });
@@ -777,7 +796,7 @@
     var p=currentProfile(); CUR=p.cur||"£";
     $("avatarBtn").textContent=initials(p.name);
     $("greeting").textContent=(p.name&&p.name!=="Me")?(p.name+"’s basket"):"Your basket";
-    renderSidebar(); renderMainHeader(); renderSaveBar(); renderOccasions(); renderStatusChips(); renderCatFilter(); renderPlan(); renderSegDash(); renderSublists(); renderGrid();renderListPickerData(); renderSalesBanner();
+    renderSidebar(); renderMainHeader(); renderSaveBar(); renderOccasions(); renderHomeSwitch(); renderStatusChips(); renderCatFilter(); renderPlan(); renderSegDash(); renderSublists(); renderGrid();renderListPickerData(); renderSalesBanner();
   }
 
   /**
@@ -1088,9 +1107,23 @@ function renderSidebar(){
     else if(d.score>=70) why=d.reasons.length?d.reasons[0].t:"Signals line up";
     return why?{it:it,d:d,why:why}:null;
   }
+  /**
+   * Items | Plan switch (tester feedback: "get straight to the saved items
+   * without scrolling all the way down"). Items is the default and shows the
+   * grid immediately; the cockpit + spend map live under Plan.
+   */
+  function renderHomeSwitch(){
+    var w=$("homeSwitch"); if(!w) return;
+    if(filter.list!=="all"||!db.current||!items().length){ w.innerHTML=""; return; }
+    var hv=db.settings.homeView||"items";
+    w.innerHTML='<div class="chips" style="margin:2px 0 4px"><button class="chip'+(hv==="items"?" active":"")+'" data-hv="items">🧺 My items</button><button class="chip'+(hv==="plan"?" active":"")+'" data-hv="plan">📊 Plan &amp; insights</button></div>';
+    Array.prototype.forEach.call(w.querySelectorAll("[data-hv]"),function(b){ b.onclick=function(){ db.settings.homeView=b.getAttribute("data-hv"); save(); render(); }; });
+  }
+
   function renderPlan(){
     var w=$("planWrap");
     if(filter.list!=="all"||!db.current||!items().length){ w.innerHTML=""; return; }
+    if((db.settings.homeView||"items")!=="plan"){ w.innerHTML=""; return; } // Items view goes straight to the grid
     var p=currentProfile(); var budget=Number(p.budget)||0; var curKey=monthKeyOf(now());
     var spentMonth=items().filter(function(it){ return it.bought&&it.boughtAt&&monthKeyOf(it.boughtAt)===curKey; }).reduce(function(s,it){ return s+(Number(latestPrice(it))||0); },0);
     var committed=items().filter(function(it){ return !it.bought&&it.status==="want"; }).reduce(function(s,it){ return s+(Number(latestPrice(it))||0); },0);
@@ -1126,6 +1159,7 @@ function renderSidebar(){
   function renderSegDash(){
     var w=$("segDash");
     if(filter.list!=="all"||!db.current){ w.innerHTML=""; return; }
+    if((db.settings.homeView||"items")!=="plan"){ w.innerHTML=""; return; } // Items view goes straight to the grid
     var roots=rootLists();
     if(!roots.length&&!items().length){ w.innerHTML=""; return; }
     var pal=palette();
@@ -1349,6 +1383,22 @@ function renderSidebar(){
   function agoText(ms){ var d=Math.floor((now()-ms)/86400000); return d<=0?"today":(d===1?"yesterday":d+" days ago"); }
   function extractPrice(dt){ if(dt.price!=null&&!isNaN(parseFloat(dt.price))) return parseFloat(dt.price); var blob=[dt.description,dt.title].filter(Boolean).join(" "); var m=blob.match(/[£$€]\s?([0-9]{1,6}(?:[.,][0-9]{2})?)/); return m?parseFloat(m[1].replace(",",".")):null; }
   var ISO_SYM={GBP:"£",USD:"$",EUR:"€",INR:"₹",JPY:"¥"};
+  var SYM_ISO={"£":"GBP","$":"USD","€":"EUR","₹":"INR","¥":"JPY"};
+  // Live exchange rate (frankfurter.app, ECB, free, no key), cached 12h.
+  // Returns a multiplier, or null when unknown — caller falls back honestly.
+  function fxRate(fromSym,toSym){
+    if(fromSym===toSym) return Promise.resolve(1);
+    var from=SYM_ISO[fromSym],to=SYM_ISO[toSym];
+    if(!from||!to) return Promise.resolve(null);
+    var key="baskit.fx."+from+"."+to;
+    try{ var c=JSON.parse(localStorage.getItem(key)||"null"); if(c&&c.at&&(Date.now()-c.at)<43200000&&c.r) return Promise.resolve(c.r); }catch(e){}
+    var ctrl; try{ctrl=new AbortController();}catch(e){}
+    var t=setTimeout(function(){ if(ctrl)ctrl.abort(); },6000);
+    return fetch("/api/fx?from="+from+"&to="+to, ctrl?{signal:ctrl.signal}:{})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ clearTimeout(t); var r=j&&j.rate; if(r){ try{localStorage.setItem(key,JSON.stringify({r:r,at:Date.now()}));}catch(e){} return r; } return null; })
+      .catch(function(){ clearTimeout(t); return null; });
+  }
   // Baskit's own server-side extraction ladder (JSON-LD + retailer adapters) —
   // reads real prices and images. Falls back to microlink for JS-only pages.
   var lastFetchSlow=false;
@@ -1358,7 +1408,24 @@ function renderSidebar(){
   function fetchMicrolink(url){ var ctrl; try{ctrl=new AbortController();}catch(e){} var to=setTimeout(function(){ if(ctrl)ctrl.abort(); },7000); return fetch("https://api.microlink.io/?meta=true&url="+encodeURIComponent(url), ctrl?{signal:ctrl.signal}:{}).then(function(r){ return r.json(); }).then(function(j){ clearTimeout(to); if(!j||j.status!=="success"||!j.data) throw new Error("nodata"); var dt=j.data; return { title:dt.title||"", img:(dt.image&&dt.image.url)||(dt.logo&&dt.logo.url)||"", price:extractPrice(dt), cur:null, stock:null, confident:false, description:dt.description||"" }; }); }
   function fetchMeta(url){ return fetchOwn(url).catch(function(){ return fetchMicrolink(url); }); }
 
-  $("fetchBtn").onclick=function(){ var url=$("f_url").value.trim(); if(!url){ $("f_url").focus(); toast("Paste a product link first"); return; } var btn=$("fetchBtn"); btn.innerHTML='<span class="spin"></span>'; btn.disabled=true; var slowHint=setTimeout(function(){ toast("Reading the store, one moment…",4000); },3500); fetchMeta(url).then(function(m){ clearTimeout(slowHint); btn.innerHTML="Fetch"; btn.disabled=false; if(m.title&&!$("f_name").value) $("f_name").value=m.title; if(m.img&&!$("f_img").value) $("f_img").value=m.img; if(m.price!=null&&!$("f_price").value){ $("f_price").value=m.price; if(m.cur) $("f_cur").value=m.cur; } if(m.stock&&$("f_stock").value==="unknown") $("f_stock").value=m.stock; toast(m.price!=null?(m.confident?"Pulled price, image and details from the store":"Best guess from the page — double-check the price"):"Pulled title & image — add the price"); }).catch(function(){ clearTimeout(slowHint); btn.innerHTML="Fetch"; btn.disabled=false; toast(lastFetchSlow?"That store is slow to answer — type the price in and it still tracks":"Couldn't read that link — add the details and it still works"); }); };
+  $("fetchBtn").onclick=function(){ var url=$("f_url").value.trim(); if(!url){ $("f_url").focus(); toast("Paste a product link first"); return; } var btn=$("fetchBtn"); btn.innerHTML='<span class="spin"></span>'; btn.disabled=true; var slowHint=setTimeout(function(){ toast("Reading the store, one moment…",4000); },3500);
+    fetchMeta(url).then(function(m){ clearTimeout(slowHint); btn.innerHTML="Fetch"; btn.disabled=false;
+      if(m.title&&!$("f_name").value) $("f_name").value=m.title;
+      if(m.img&&!$("f_img").value) $("f_img").value=m.img;
+      if(m.stock&&$("f_stock").value==="unknown") $("f_stock").value=m.stock;
+      var done=function(price,cur,fxNote){
+        if(price!=null&&!$("f_price").value){ $("f_price").value=price; if(cur) $("f_cur").value=cur; }
+        toast(m.price!=null?((m.confident?"Pulled price, image and details from the store":"Best guess from the page, double-check the price")+(fxNote||"")):"Pulled title & image, add the price",3400);
+      };
+      // Prices land in the currency the basket was set up with; the store's
+      // own currency converts at today's rate (still overridable per item).
+      if(m.price!=null&&m.cur&&m.cur!==CUR){
+        fxRate(m.cur,CUR).then(function(rate){
+          if(rate){ done(Math.round(m.price*rate*100)/100, CUR, " (converted to "+CUR+" at today's rate)"); }
+          else { done(m.price, m.cur, ""); }
+        });
+      } else { done(m.price, m.cur||null, ""); }
+    }).catch(function(){ clearTimeout(slowHint); btn.innerHTML="Fetch"; btn.disabled=false; toast(lastFetchSlow?"That store is slow to answer — type the price in and it still tracks":"Couldn't read that link — add the details and it still works"); }); };
 
   function checkItemPrice(it){ if(!it.url) return Promise.resolve({ok:false,reason:"no link"}); return fetchMeta(it.url).then(function(m){ it.lastChecked=now(); if(m.price!=null){ var old=latestPrice(it); if(old==null){ it.price=m.price; it.priceHistory=[{t:now(),p:m.price}]; return {ok:true,changed:true,old:null,nw:m.price}; } if(Number(m.price)!==Number(old)){ logPrice(it,m.price); return {ok:true,changed:true,old:Number(old),nw:m.price}; } return {ok:true,changed:false,nw:m.price}; } return {ok:false,reason:"no price"}; }).catch(function(){ it.lastChecked=now(); return {ok:false,reason:"unreachable"}; }); }
 
@@ -1381,7 +1448,13 @@ function renderSidebar(){
     rootLists().forEach(function(l){ node(l,0); });
     if(!lists().length) html='<div class="hint" style="padding:6px">No lists yet — create one below (e.g. “Christmas gifts”).</div>';
     box.innerHTML=html;
-    Array.prototype.forEach.call(box.querySelectorAll("[data-lp]"),function(cb){ cb.onchange=function(){ pickSel[cb.getAttribute("data-lp")]=cb.checked; }; });
+    Array.prototype.forEach.call(box.querySelectorAll("[data-lp]"),function(cb){ cb.onchange=function(){ pickSel[cb.getAttribute("data-lp")]=cb.checked; updateListSummary(); }; });
+    updateListSummary();
+  }
+  function updateListSummary(){
+    var el=$("listSummary"); if(!el) return;
+    var names=[]; lists().forEach(function(l){ if(pickSel[l.id]) names.push((l.emoji||"")+" "+l.name); });
+    el.textContent = names.length ? (names.length<=2 ? names.join(", ") : names.length+" lists selected") : "none yet";
   }
   function renderListPickerData(){ /* datalist for category kept elsewhere */ $("catList").innerHTML=Object.keys(categories()).map(function(c){ return '<option value="'+esc(c)+'">'; }).join(""); }
   $("lp_addBtn").onclick=function(){ var n=$("lp_new").value.trim(); if(!n) return; var l={id:newId("cl"),name:n,emoji:"🗂",parentId:null,cap:null,due:null,created:now()}; lists().push(l); pickSel[l.id]=true; save(); $("lp_new").value=""; renderListPicker(); renderSidebar(); toast("List created"); };
@@ -1502,7 +1575,13 @@ function renderSidebar(){
 
   // modal plumbing
   function anyModalOpen(){ return ["modalWrap","pWrap","iWrap","sWrap","lWrap","segWrap","saleWrap","tourWrap","moneyWrap"].some(function(id){ return $(id).classList.contains("open"); })||$("panel").classList.contains("open")||$("sidebar").classList.contains("open"); }
-  function openWrap(id){ $(id).classList.add("open"); $("overlay").classList.add("open"); }
+  function openWrap(id){
+    // A modal always takes the stage: close the mobile drawer and the detail
+    // panel first, so it never opens behind them (Sagar's stacking bug).
+    $("sidebar").classList.remove("open");
+    if(detailId!==null){ $("panel").classList.remove("open"); detailId=null; }
+    $(id).classList.add("open"); $("overlay").classList.add("open");
+  }
   function closeWrap(id){ $(id).classList.remove("open"); if(!anyModalOpen()) $("overlay").classList.remove("open"); }
   $("overlay").onclick=function(){ ["modalWrap","iWrap","sWrap","lWrap","segWrap","saleWrap","moneyWrap"].forEach(function(id){ $(id).classList.remove("open"); }); if(db.profiles.length) $("pWrap").classList.remove("open"); $("sidebar").classList.remove("open"); closeDetail(); if(!anyModalOpen()) $("overlay").classList.remove("open"); };
 

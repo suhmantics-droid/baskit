@@ -26,8 +26,12 @@ test.describe("prototype (tester surface)", () => {
     await page.click("#tourNext"); // "Start planning"
     await expect(page.locator("#tourWrap")).not.toHaveClass(/open/);
 
-    // samples light up the cockpit
+    // samples land on the Items view first (tester ask: items without scrolling)
     await page.click("#empSeed");
+    await expect(page.locator(".card").first()).toBeVisible();
+    await expect(page.locator("#planWrap .chartbox")).toHaveCount(0);
+    // the cockpit + spend map live under the Plan chip
+    await page.click('#homeSwitch [data-hv="plan"]');
     await expect(page.locator("#planWrap .chartbox h4").first()).toContainText("plan");
     await expect(page.locator(".bn-row").first()).toBeVisible();
     await expect(page.locator("#segDash .dseg").first()).toBeVisible();

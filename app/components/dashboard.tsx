@@ -489,10 +489,16 @@ export function Dashboard({ user }: DashboardProps) {
             setSidebarOpen(false);
             window.scrollTo(0, 0);
           }}
-          onNewList={(parentId) => setListModal({ list: null, parentId })}
+          onNewList={(parentId) => {
+            setSidebarOpen(false); // the modal must never open behind the drawer
+            setListModal({ list: null, parentId });
+          }}
           onEditList={(id) => {
             const l = (lists ?? []).find((x) => x.id === id);
-            if (l) setListModal({ list: l, parentId: null });
+            if (l) {
+              setSidebarOpen(false);
+              setListModal({ list: l, parentId: null });
+            }
           }}
         />
         <main className="page">

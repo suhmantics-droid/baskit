@@ -220,7 +220,7 @@ select.sel { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--lin
 
 /* modals + overlay (ported from the prototype; missed in the E2-3 port, restored with E2-5) */
 .overlay { position: fixed; inset: 0; background: rgba(20, 16, 10, 0.42); backdrop-filter: blur(2px); z-index: 60; }
-.modal-wrap { position: fixed; inset: 0; z-index: 61; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+.modal-wrap { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
 .modal { background: var(--surface); width: 100%; max-width: 540px; border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--line); }
 .modal .mhead { padding: 18px 22px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
 .modal .mhead h2 { margin: 0; font-family: var(--font-display, Georgia), Georgia, serif; font-size: 18px; font-weight: 600; letter-spacing: 0; }
