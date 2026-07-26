@@ -12,7 +12,8 @@
   --surface-2: #f6f4ef;
   --ink: #16130f;
   --ink-soft: #6b665e;
-  --ink-faint: #9c968c;
+  --ink-faint: #776f63;
+  --grain: 0.028;
   --line: #ece9e3;
   --line-strong: #ddd8cf;
   --good: #2f7d5b;
@@ -36,7 +37,8 @@ html[data-theme="dark"] {
   --surface-2: #232019;
   --ink: #f4f1ea;
   --ink-soft: #b0aaa0;
-  --ink-faint: #7d776d;
+  --ink-faint: #8a8378;
+  --grain: 0.038;
   --line: #2a2723;
   --line-strong: #3a352f;
   --good: #57b98a;
@@ -60,7 +62,8 @@ html[data-theme="dark"] {
     --surface-2: #232019;
     --ink: #f4f1ea;
     --ink-soft: #b0aaa0;
-    --ink-faint: #7d776d;
+    --ink-faint: #8a8378;
+  --grain: 0.038;
     --line: #2a2723;
     --line-strong: #3a352f;
     --good: #57b98a;
@@ -104,6 +107,22 @@ html,
 body {
   overflow-x: clip;
 }
+
+/* finish coat: a fixed film of grain over the whole page */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:2;opacity:var(--grain);mix-blend-mode:soft-light;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:140px 140px}
+
+  /* Anyone who asks their OS for less motion gets none of ours, including the
+     spinner's infinite loop. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
 
 body {
   background: var(--bg);
