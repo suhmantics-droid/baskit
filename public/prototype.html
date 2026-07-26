@@ -8,11 +8,11 @@
 <meta property="og:description" content="Your record. Your budget. The right time to buy." />
 <meta property="og:image" content="https://baskit.suhmantics.com/og.png" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="description" content="Baskit is a free universal wishlist and price tracker. Save things from any UK store, set budgets, get a buy-or-wait score, and let daily price checks tell you the right time to buy." />
+<meta name="description" content="Baskit is a free universal wishlist and price tracker. Save things from any UK store, set budgets, get a buy-or-wait score, and and price checks that tell you the right time to buy." />
 <link rel="canonical" href="https://baskit.suhmantics.com/" />
 <meta name="theme-color" content="#16130f" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"Baskit","url":"https://baskit.suhmantics.com/","description":"A universal wishlist with nested budgets, a buy-or-wait decision engine, and daily price tracking across UK stores.","applicationCategory":"ShoppingApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"GBP"},"publisher":{"@type":"Organization","name":"Baskit","url":"https://baskit.suhmantics.com/","logo":"https://baskit.suhmantics.com/baskit-logo.png"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"Baskit","url":"https://baskit.suhmantics.com/","description":"A universal wishlist with nested budgets, a buy-or-wait decision engine, and automatic price tracking across UK stores.","applicationCategory":"ShoppingApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"GBP"},"publisher":{"@type":"Organization","name":"Baskit","url":"https://baskit.suhmantics.com/","logo":"https://baskit.suhmantics.com/baskit-logo.png"}}
 </script>
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <link rel="manifest" href="/manifest.json" />
@@ -348,6 +348,17 @@
   .occ-txt b { display: block; font-size: 14px; }
   .occ-txt span { color: var(--ink-soft); }
   .occ-arrow { color: var(--ink-faint); font-size: 20px; }
+  /* "while you were away" digest: what changed and what now needs deciding */
+  .dig { border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); padding: 12px 14px; margin-bottom: 14px; }
+  .dig-h { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 9px; }
+  .dig-h .x { margin-left: auto; border: none; background: none; color: var(--ink-faint); font-size: 17px; line-height: 1; padding: 2px 5px; border-radius: 7px; }
+  .dig-h .x:hover { background: var(--surface); color: var(--ink); }
+  .dig-row { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 9px; cursor: pointer; font-size: 13px; }
+  .dig-row:hover { background: var(--surface); }
+  .dig-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dig-row .amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .dig-row .amt.good { color: var(--good); }
+  .dig-row .amt.bad { color: var(--bad); }
   .buynow { display: grid; gap: 8px; }
   .bn-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--surface-2); transition: border-color .12s, transform .12s; }
   .bn-row:hover { border-color: var(--good); transform: translateX(2px); }
@@ -423,6 +434,7 @@
     </div>
     <div id="saveBar"></div>
 <div id="occasionBanner"></div>
+<div id="digestBanner"></div>
 <div id="homeSwitch"></div>
 <div id="statsWrap"><div class="stats" id="stats"></div></div>
     <div id="planWrap"></div>
@@ -803,7 +815,7 @@
     var p=currentProfile(); CUR=p.cur||"£";
     $("avatarBtn").textContent=initials(p.name);
     $("greeting").textContent=(p.name&&p.name!=="Me")?(p.name+"’s basket"):"Your basket";
-    renderSidebar(); renderMainHeader(); renderSaveBar(); renderOccasions(); renderHomeSwitch(); renderStatusChips(); renderCatFilter(); renderPlan(); renderSegDash(); renderSublists(); renderGrid();renderListPickerData(); renderSalesBanner();
+    renderSidebar(); renderMainHeader(); renderSaveBar(); renderOccasions(); renderDigest(); renderHomeSwitch(); renderStatusChips(); renderCatFilter(); renderPlan(); renderSegDash(); renderSublists(); renderGrid();renderListPickerData(); renderSalesBanner();
   }
 
   /**
@@ -872,6 +884,8 @@ function renderSidebar(){
     var html='<div class="side-h"><span>Segments &amp; groups</span><button class="side-add" id="newListBtn" title="New list">＋</button></div>';
     html+='<div class="side-item '+(filter.list==="all"?"active":"")+'" data-list="all"><div class="side-row"><span class="em">🧺</span><span class="nm">All items</span><span class="ct">'+items().length+'</span></div></div>';
     html+='<div class="side-item '+(filter.list==="__fav"?"active":"")+'" data-list="__fav"><div class="side-row"><span class="em" style="color:#e0426e">♥</span><span class="nm">Favourites</span><span class="ct">'+items().filter(function(i){return i.fav;}).length+'</span></div></div>';
+    var letGoCount=items().filter(function(i){return i.letGo;}).length;
+    if(letGoCount) html+='<div class="side-item '+(filter.list==="__letgo"?"active":"")+'" data-list="__letgo"><div class="side-row"><span class="em">🕊</span><span class="nm">Let go</span><span class="ct">'+letGoCount+'</span></div></div>';
     html+='<div class="side-item '+(filter.list==="__bought"?"active":"")+'" data-list="__bought"><div class="side-row"><span class="em">🧾</span><span class="nm">Purchases</span><span class="ct">'+items().filter(function(i){return i.bought;}).length+'</span></div></div>';
     html+='<div style="height:6px"></div>';
     rootLists().forEach(function(l){ html+=sideNode(l,0); });
@@ -903,6 +917,13 @@ function renderSidebar(){
       $("listHeader").innerHTML='<div class="lhead"><div class="crumb"><a data-go="all">All items</a> <span>›</span> <span>Favourites</span></div><div class="lt"><h1><span style="color:#e0426e">♥</span> Favourites</h1><div class="lacts"><button class="btn sm" id="lhAdd">＋ Add item</button></div></div><div class="budget-wrap"><div class="budget-nums"><div class="bn"><div class="k">Items</div><div class="v">'+favs.length+'</div></div><div class="bn"><div class="k">Total value</div><div class="v">'+money(favTotal)+'</div></div></div><div class="hint">Tap the ♡ on any card to keep it here — favourites get a small boost in their decision score.</div></div></div>';
       Array.prototype.forEach.call($("listHeader").querySelectorAll("[data-go]"),function(a){ a.onclick=function(){ selectList(a.getAttribute("data-go")); }; });
       $("lhAdd").onclick=function(){ openAdd(); };
+      return;
+    }
+    if(filter.list==="__letgo"){
+      var gone=items().filter(function(i){ return i.letGo; });
+      var avoidedTotal=avoidedByLettingGo();
+      $("listHeader").innerHTML='<div class="lhead"><div class="crumb"><a data-go="all">All items</a> <span>›</span> <span>Let go</span></div><div class="lt"><h1><span>🕊</span> Let go</h1><div class="lacts">'+(avoidedTotal>0?'<span class="savedpill">↓ '+money(avoidedTotal)+' you did not spend</span>':"")+'</div></div><div class="hint">'+gone.length+' thing'+(gone.length===1?"":"s")+' you decided against after cooling off. Open one to put it back.</div></div>';
+      Array.prototype.forEach.call($("listHeader").querySelectorAll("[data-go]"),function(a){ a.onclick=function(){ selectList(a.getAttribute("data-go")); }; });
       return;
     }
     if(filter.list==="__bought"){
@@ -990,7 +1011,7 @@ function renderSidebar(){
   function categories(){ var s={}; items().forEach(function(i){ var c=i.cat||"Uncategorised"; s[c]=(s[c]||0)+1; }); return s; }
   function renderCatFilter(){ var cats=categories(),cur=filter.cat; $("catFilter").innerHTML='<option value="all">All categories</option>'+Object.keys(cats).sort().map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+' ('+cats[c]+')</option>'; }).join(""); $("catFilter").value=cur; }
 
-  function scopedItems(){ if(filter.list==="__fav") return items().filter(function(i){ return i.fav; }); if(filter.list==="__bought") return items().filter(function(i){ return i.bought; }); return filter.list==="all"?items():itemsInSubtree(filter.list); }
+  function scopedItems(){ if(filter.list==="__fav") return items().filter(function(i){ return i.fav; }); if(filter.list==="__bought") return items().filter(function(i){ return i.bought; }); if(filter.list==="__letgo") return items().filter(function(i){ return i.letGo; }); return filter.list==="all"?items():itemsInSubtree(filter.list); }
   function renderStatusChips(){
     var all=scopedItems();
     function cnt(s){ return all.filter(function(i){return i.status===s;}).length; }
@@ -1103,6 +1124,25 @@ function renderSidebar(){
   var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
   function monthKeyOf(ts){ var d=new Date(ts); return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2); }
   function savedByWaiting(it){ var f=firstPrice(it),l=latestPrice(it); return (f!=null&&l!=null&&f>l)?(f-l):0; }
+  /**
+   * Money not spent. Two halves, and the second is the bigger one: buying later
+   * at a lower price saves the difference, but walking away saves the whole
+   * thing. Cool-off timers only mean something if the "no" is worth counting.
+   */
+  function avoidedByLettingGo(){ return items().filter(function(i){ return i.letGo; }).reduce(function(s,i){ return s+(Number(i.letGoPrice)||0); },0); }
+  function savedTotal(){ return items().filter(function(i){ return i.bought; }).reduce(function(s,i){ return s+savedByWaiting(i); },0)+avoidedByLettingGo(); }
+  function letGoItem(id){
+    var it=items().filter(function(i){ return i.id===id; })[0]; if(!it) return;
+    it.letGo=true; it.letGoAt=now(); it.letGoPrice=latestPrice(it); it.waitUntil=null; it.cooldownDays=0;
+    save(); if(detailId===id){ $("panel").classList.remove("open"); $("overlay").classList.remove("open"); detailId=null; }
+    render();
+    toast("Let go. "+money(it.letGoPrice||0,it.cur)+" you did not spend.",3200);
+  }
+  function unLetGo(id){
+    var it=items().filter(function(i){ return i.id===id; })[0]; if(!it) return;
+    it.letGo=false; it.letGoAt=null; it.letGoPrice=null; save(); render(); if(detailId===id) openDetail(id);
+    toast("Back in your basket");
+  }
   function buySignals(it){
     if(it.bought) return null;
     var d=decide(it); var why=null; var price=Number(latestPrice(it))||0;
@@ -1114,6 +1154,60 @@ function renderSidebar(){
     else if(d.score>=70) why=d.reasons.length?d.reasons[0].t:"Signals line up";
     return why?{it:it,d:d,why:why}:null;
   }
+
+  /**
+   * "While you were away" digest — the thing that makes the product's promise
+   * real on this surface. A toast saying "2 price changes" told you nothing:
+   * not which items, not which direction, not how much, and it vanished in two
+   * seconds. This lists every change that needs a decision, each row opening the
+   * item. Dismissing marks those exact changes seen (a key per change, so a
+   * later drop on the same item still speaks up) rather than muting the panel.
+   *
+   * Back-in-stock is deliberately absent: this surface never stored the previous
+   * stock value, so claiming to have spotted a restock would be a guess.
+   */
+  function digestSeen(){ db.settings.digestSeen=db.settings.digestSeen||{}; return db.settings.digestSeen; }
+  function buildDigest(){
+    var seen=digestSeen(), out=[];
+    items().forEach(function(it){
+      if(it.bought) return;
+      var ph=it.priceHistory||[], price=latestPrice(it);
+      if(ph.length>=2){
+        var prev=ph[ph.length-2].p, nw=ph[ph.length-1].p;
+        if(Number(nw)!==Number(prev)){
+          var fell=Number(nw)<Number(prev);
+          var k=(fell?"drop:":"rise:")+it.id+":"+nw;
+          if(!seen[k]) out.push({ k:k, id:it.id, em:fell?"↓":"↑", nm:it.name, amt:money(Math.abs(prev-nw),it.cur), cls:fell?"good":"bad", sub:(fell?"now ":"up to ")+money(nw,it.cur) });
+        }
+      }
+      if(it.targetPrice!=null&&price!=null&&Number(price)<=Number(it.targetPrice)){
+        var kt="target:"+it.id+":"+price;
+        if(!seen[kt]) out.push({ k:kt, id:it.id, em:"✓", nm:it.name, amt:money(price,it.cur), cls:"good", sub:"hit your target of "+money(it.targetPrice,it.cur) });
+      }
+      if(it.cooldownDays>0&&it.waitUntil&&daysBetween(it.waitUntil,now())<=0){
+        var kc="cool:"+it.id+":"+it.waitUntil;
+        if(!seen[kc]) out.push({ k:kc, id:it.id, em:"⏳", nm:it.name, amt:"", cls:"", sub:"cool-off finished, still want it?" });
+      }
+    });
+    return out;
+  }
+  function renderDigest(){
+    var box=$("digestBanner"); if(!box) return;
+    if(!db.current||(filter.list!=="all")){ box.innerHTML=""; return; }
+    var rows=buildDigest();
+    if(!rows.length){ box.innerHTML=""; return; }
+    box.innerHTML='<div class="dig"><div class="dig-h"><span>While you were away</span><button class="x" id="digX" title="Dismiss">&times;</button></div>'+
+      rows.slice(0,6).map(function(r){
+        return '<div class="dig-row" data-dig="'+r.id+'"><span>'+r.em+'</span><span class="nm">'+esc(r.nm)+'</span><span class="hint">'+esc(r.sub)+'</span>'+(r.amt?'<span class="amt '+r.cls+'">'+r.amt+'</span>':'')+'</div>';
+      }).join("")+
+      (rows.length>6?'<div class="hint" style="padding:6px 8px">and '+(rows.length-6)+' more</div>':'')+
+      '</div>';
+    $("digX").onclick=function(){ var s=digestSeen(); rows.forEach(function(r){ s[r.k]=1; }); save(); renderDigest(); };
+    Array.prototype.forEach.call(box.querySelectorAll("[data-dig]"),function(el){
+      el.onclick=function(){ openDetail(el.getAttribute("data-dig")); };
+    });
+  }
+
   /**
    * Items | Plan switch (tester feedback: "get straight to the saved items
    * without scrolling all the way down"). Items is the default and shows the
@@ -1155,8 +1249,8 @@ function renderSidebar(){
     // ready to buy
     var ready=items().map(buySignals).filter(Boolean).sort(function(a,b){ return b.d.score-a.d.score; }).slice(0,4);
     var rows=ready.length?('<div class="buynow">'+ready.map(function(r){ return '<div class="bn-row" data-buynow="'+r.it.id+'"><span class="score-pill" style="border-color:'+scoreColor(r.d.cls)+'"><span class="sd" style="background:'+scoreColor(r.d.cls)+'"></span>'+r.d.score+'</span><span class="nm">'+esc(r.it.name)+'</span><span class="why">'+esc(r.why)+'</span><span class="pr">'+money(latestPrice(r.it),r.it.cur)+'</span></div>'; }).join("")+'</div>'):'<div class="bn-empty">Nothing is screaming buy today. That is the plan working, not failing.</div>';
-    var totalSaved=items().filter(function(it){return it.bought;}).reduce(function(s,it){ return s+savedByWaiting(it); },0);
-    var savedPill=totalSaved>0?'<span class="savedpill">↓ '+money(totalSaved)+' saved by waiting</span>':"";
+    var totalSaved=savedTotal(); var avoided=avoidedByLettingGo();
+    var savedPill=totalSaved>0?'<span class="savedpill" title="'+money(totalSaved-avoided)+' by buying lower, '+money(avoided)+' by walking away">↓ '+money(totalSaved)+' you did not spend</span>':"";
     w.innerHTML='<div class="dash-duo"><div class="chartbox"><h4>'+monthName+"’s plan"+'</h4><div class="sub">What you have spent, what is planned, and whether it fits</div>'+barHtml+legend+nums+budgetHint+'</div><div class="chartbox"><h4>Ready to buy now</h4><div class="sub">Only items whose signals say go '+savedPill+'</div>'+rows+'</div></div>';
     var sb=$("planSetBudget"); if(sb) sb.onclick=function(e){ e.preventDefault(); var b=prompt("Monthly budget for wants:",p.budget||""); if(b!==null){ p.budget=parseFloat(b)||0; save(); render(); toast("Budget set — the plan is live"); } };
     var fm=$("planFromMoney"); if(fm) fm.onclick=function(e){ e.preventDefault(); openMoney(); };
@@ -1228,6 +1322,8 @@ function renderSidebar(){
   function visibleItems(){
     var list=scopedItems().slice(); var q=filter.q.toLowerCase().trim();
     list=list.filter(function(it){
+      // things you walked away from live in their own ledger, not the basket
+      if(it.letGo&&filter.list!=="__letgo") return false;
       if(filter.status==="ready"){ if(!(it.cooldownDays>0&&it.waitUntil&&daysBetween(it.waitUntil,now())<=0)) return false; }
       else if(filter.status!=="all"&&it.status!==filter.status) return false;
       if(filter.cat!=="all"&&(it.cat||"Uncategorised")!==filter.cat) return false;
@@ -1316,7 +1412,8 @@ function renderSidebar(){
     var d=decide(it); var ph=it.priceHistory||[]; var was=firstPrice(it);
     var body='';
     body+='<div class="score-block">'+scoreRing(d.score,d.cls)+'<div><div style="font-weight:600; margin-bottom:2px">'+d.band+'</div><div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:8px">'+d.verdict+'</div><ul class="reasons">'+d.reasons.slice(0,4).map(function(r){ return '<li class="'+(r.d>=0?"pos":"neg")+'"><span class="s">'+(r.d>=0?"+":"−")+'</span>'+esc(r.t)+'</li>'; }).join("")+'</ul></div></div>';
-    if(it.cooldownDays>0&&it.waitUntil){ var left=daysBetween(it.waitUntil,now()); if(left>0) body+='<div class="verdict cool">⏳ Cooling off — '+left+' day'+(left>1?"s":"")+' left. <a href="#" id="decideNow" style="margin-left:auto;color:inherit;font-weight:600">Decide now</a></div>'; else body+='<div class="verdict decide">⚑ Cool-off finished — still want it? <a href="#" id="restartCool" style="margin-left:auto;color:inherit;font-weight:600">Wait longer</a></div>'; }
+    if(it.cooldownDays>0&&it.waitUntil){ var left=daysBetween(it.waitUntil,now()); if(left>0) body+='<div class="verdict cool">⏳ Cooling off — '+left+' day'+(left>1?"s":"")+' left. <a href="#" id="decideNow" style="margin-left:auto;color:inherit;font-weight:600">Decide now</a></div>'; else body+='<div class="verdict decide">⚑ Cool-off finished. Still want it? <a href="#" id="letGoLink" style="margin-left:auto;color:inherit;font-weight:600">Let it go</a><a href="#" id="restartCool" style="margin-left:14px;color:inherit;font-weight:600">Wait longer</a></div>'; }
+    if(it.letGo) body+='<div class="verdict cool">✓ You let this go, '+money(it.letGoPrice||0,it.cur)+' you did not spend. <a href="#" id="unLetGoLink" style="margin-left:auto;color:inherit;font-weight:600">Put it back</a></div>';
     body+='<div><div class="sec-t">Price</div><div class="kv"><span class="k">Current</span><span class="mono">'+money(price,it.cur)+'</span></div>';
     if(it.targetPrice) body+='<div class="kv"><span class="k">Target</span><span class="mono">'+money(it.targetPrice,it.cur)+(price<=it.targetPrice?' <span style="color:var(--good)">✓ hit</span>':' <span style="color:var(--ink-faint)">'+money(price-it.targetPrice,it.cur)+' to go</span>')+'</span></div>';
     if(was!==price) body+='<div class="kv"><span class="k">Since you saved</span><span class="mono" style="color:'+(was>price?"var(--good)":"var(--bad)")+'">'+(was>price?"↓ ":"↑ ")+money(Math.abs(was-price),it.cur)+'</span></div>';
@@ -1338,6 +1435,8 @@ function renderSidebar(){
     var rb=$("recheckBtn"); if(rb) rb.onclick=function(){ rb.innerHTML='<span class="spin"></span>'; rb.disabled=true; checkItemPrice(it).then(function(r){ save(); render(); openDetail(id); if(r.ok&&r.changed) toast(r.old==null?("Price found: "+money(r.nw,it.cur)):("Price "+(r.nw<r.old?"dropped":"rose")+" to "+money(r.nw,it.cur))); else if(r.ok) toast("No change — still "+money(r.nw,it.cur)); else toast("Couldn't read the price — try the bookmarklet on the page"); }); };
     var dn=$("decideNow"); if(dn) dn.onclick=function(e){ e.preventDefault(); it.cooldownDays=0; it.waitUntil=null; save(); render(); openDetail(id); toast("Cool-off ended"); };
     var rc=$("restartCool"); if(rc) rc.onclick=function(e){ e.preventDefault(); it.waitUntil=now()+7*86400000; it.cooldownDays=7; save(); render(); openDetail(id); toast("Cooling off 7 more days"); };
+    var lg=$("letGoLink"); if(lg) lg.onclick=function(e){ e.preventDefault(); letGoItem(id); };
+    var ulg=$("unLetGoLink"); if(ulg) ulg.onclick=function(e){ e.preventDefault(); unLetGo(id); };
     $("panel").classList.add("open"); $("overlay").classList.add("open");
   }
   function closeDetail(){ $("panel").classList.remove("open"); if(!anyModalOpen()) $("overlay").classList.remove("open"); detailId=null; }
@@ -1496,7 +1595,7 @@ function renderSidebar(){
 
   function refreshDuePrices(force){ var due=items().filter(function(it){ return it.url&&(force||!it.lastChecked||daysBetween(now(),it.lastChecked)>=7); }); if(!due.length){ toast("Prices were all checked in the last week"); return; } var CAP=15,capped=due.length>CAP; due=due.slice(0,CAP); toast("Checking "+due.length+" price"+(due.length>1?"s":"")+"…"); var changed=0,i=0; (function step(){ if(i>=due.length){ save(); render(); toast(changed?(changed+" price change"+(changed===1?"":"s")+" found"):("No price changes"+(capped?" (first "+CAP+" checked)":""))); return; } checkItemPrice(due[i]).then(function(r){ if(r.changed) changed++; i++; setTimeout(step,350); }); })(); }
 
-  function maybeAutoRefresh(){ if(db.settings.autoCheck===false) return; var last=db.settings.lastAutoRefresh||0; if(last&&daysBetween(now(),last)<1) return; var due=items().filter(function(it){ return it.url&&(!it.lastChecked||daysBetween(now(),it.lastChecked)>=7); }); db.settings.lastAutoRefresh=now(); save(); if(!due.length) return; var due2=due.slice(0,8),changed=0,i=0; (function step(){ if(i>=due2.length){ if(changed){ save(); render(); toast(changed+" price change"+(changed===1?"":"s")+" since last check"); } return; } checkItemPrice(due2[i]).then(function(r){ if(r.changed) changed++; i++; setTimeout(step,600); }); })(); }
+  function maybeAutoRefresh(){ if(db.settings.autoCheck===false) return; var last=db.settings.lastAutoRefresh||0; if(last&&daysBetween(now(),last)<1) return; var due=items().filter(function(it){ return it.url&&(!it.lastChecked||daysBetween(now(),it.lastChecked)>=7); }); db.settings.lastAutoRefresh=now(); save(); if(!due.length) return; var due2=due.slice(0,8),changed=0,i=0; (function step(){ if(i>=due2.length){ if(changed){ save(); render(); } return; } checkItemPrice(due2[i]).then(function(r){ if(r.changed) changed++; i++; setTimeout(step,600); }); })(); }
 
   var SALE_PATS=[/up to \d{1,3}\s?% ?off/i,/\d{1,3}\s?% ?off\b/i,/% off everything/i,/\bsale\b/i,/clearance/i,/black friday/i,/cyber monday/i,/mid[- ]?season/i,/end of season/i,/\bpromo(tion)?\b/i,/\bdiscount(ed|s)?\b/i,/\bdeals?\b/i];
   function detectSale(t){ if(!t) return null; for(var i=0;i<SALE_PATS.length;i++){ var m=t.match(SALE_PATS[i]); if(m) return m[0]; } return null; }
@@ -1735,7 +1834,7 @@ function renderSidebar(){
 })();
 </script>
 <footer style="max-width:1320px;margin:26px auto 0;padding:20px 22px 30px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-faint);line-height:1.7">
-  <p style="margin:0 0 8px;max-width:70ch"><strong style="color:var(--ink-soft)">Baskit</strong> is a free universal wishlist and price tracker made in the UK. Save things you want from any store in one place, sort them into segments with spend caps, and get an honest buy-or-wait score for every item. Paste a product link and Baskit reads the name, price and photo from the store itself. Prices are re-checked daily, cool-off timers take the heat out of impulse buys, and the planning view shows what this month really costs before you spend it. Your basket lives in your browser until you sign in, and then it follows you to any device.</p>
+  <p style="margin:0 0 8px;max-width:70ch"><strong style="color:var(--ink-soft)">Baskit</strong> is a free universal wishlist and price tracker made in the UK. Save things you want from any store in one place, sort them into segments with spend caps, and get an honest buy-or-wait score for every item. Paste a product link and Baskit reads the name, price and photo from the store itself. Prices are re-checked for you, cool-off timers take the heat out of impulse buys, and the planning view shows what this month really costs before you spend it. Your basket lives in your browser until you sign in, and then it follows you to any device.</p>
   <p style="margin:0">
     <a href="/demo" style="color:var(--ink-soft)">Watch the demo</a> ·
     <a href="/privacy.html" style="color:var(--ink-soft)">Privacy</a> ·
@@ -1746,7 +1845,7 @@ function renderSidebar(){
 <noscript>
   <div style="max-width:640px;margin:40px auto;padding:0 22px;font-family:sans-serif">
     <h1>Baskit — everything you want, in one place</h1>
-    <p>Baskit is a free universal wishlist with budgets, a buy-or-wait decision score, and daily price tracking. It needs JavaScript to run — enable it, or watch the <a href="/demo">demo</a> instead.</p>
+    <p>Baskit is a free universal wishlist with budgets, a buy-or-wait decision score, and automatic price tracking. It needs JavaScript to run — enable it, or watch the <a href="/demo">demo</a> instead.</p>
   </div>
 </noscript>
 </body>
