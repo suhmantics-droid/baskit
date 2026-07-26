@@ -35,7 +35,7 @@ export async function enablePushNotifications(): Promise<string> {
       body: JSON.stringify(sub.toJSON()),
     });
     if (!res.ok) return "Couldn't save the subscription";
-    return "Notifications on — price drops will ping this device";
+    return "Notifications on. Price drops will ping this device";
   } catch {
     return "Couldn't turn notifications on";
   }

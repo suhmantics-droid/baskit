@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces } from "next/font/google";
+import { Fraunces, Instrument_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import "./app.css";
@@ -10,12 +10,24 @@ const fraunces = Fraunces({
   variable: "--font-display",
 });
 
+/**
+ * The reading voice. Was the -apple-system/Inter/Roboto stack, which meant the
+ * intended render on Android was Roboto: the exact generic default the house
+ * standard bans. Instrument Sans has the high x-height and slight warmth that
+ * sits under Fraunces without competing with it.
+ */
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
+
 export const metadata: Metadata = {
-  title: "Baskit — everything you want, in one place",
+  title: "Baskit: everything you want, in one place",
   description:
     "A universal wishlist with nested budgets, a buy/wait decision engine, and price tracking.",
   openGraph: {
-    title: "Baskit — decide better, buy intentional",
+    title: "Baskit. Decide better, buy intentional",
     description: "Your record. Your budget. The right time to buy.",
     images: ["/og.png"],
   },
@@ -34,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full ${fraunces.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`h-full ${fraunces.variable} ${instrumentSans.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>

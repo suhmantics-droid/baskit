@@ -23,12 +23,12 @@ const STEPS = [
   {
     icon: "💷",
     title: "Budgets that hold",
-    body: "Segments carry spend caps, and the Budget window plans month by month. Your income and outgoings stay on this device — never uploaded.",
+    body: "Segments carry spend caps, and the Budget window plans month by month. Your income and outgoings stay on this device, never uploaded.",
   },
   {
     icon: "🔔",
     title: "Moments, not noise",
-    body: "Prices are checked daily while you sleep. Real drops and target hits land in the bell — turn on notifications and they ping this device.",
+    body: "Prices get re-checked for you. Real drops and target hits land in the bell, and if you turn on notifications they ping this device.",
   },
 ];
 

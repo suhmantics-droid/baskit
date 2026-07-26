@@ -158,7 +158,7 @@ export function BudgetView({ items, budget, now, onGoAll, onBudgetSaved, showToa
 
   const useAsBudget = async () => {
     if (left <= 0) {
-      showToast("Nothing left after outgoings — adjust the numbers first");
+      showToast("Nothing left after outgoings, adjust the numbers first");
       return;
     }
     try {
@@ -189,7 +189,7 @@ export function BudgetView({ items, budget, now, onGoAll, onBudgetSaved, showToa
             <div className="sec-t" style={{ margin: 0 }}>
               My money
             </div>
-            <div className="hint">Stays on this device only. Never uploaded — not even to your account.</div>
+            <div className="hint">Stays on this device only. Never uploaded, not even to your account.</div>
           </div>
           <button className="btn ghost sm" onClick={() => setMasked((v) => !v)}>
             {masked ? "👁 Show" : "🙈 Hide"}
@@ -271,7 +271,7 @@ export function BudgetView({ items, budget, now, onGoAll, onBudgetSaved, showToa
             </button>
             <div className="hint" style={{ marginTop: 8 }}>
               Only the final budget number is saved to your account
-              {b ? ` (currently ${formatMoney(b)})` : ""} — the workings stay here.
+              {b ? ` (currently ${formatMoney(b)})` : ""} , and the workings stay here.
             </div>
           </div>
         </div>

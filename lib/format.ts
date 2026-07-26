@@ -44,7 +44,7 @@ export function formatMoney(
   currency = "GBP",
   locale = "en-GB",
 ): string {
-  if (minor == null || Number.isNaN(minor)) return "—";
+  if (minor == null || Number.isNaN(minor)) return "–";
   const value = fromMinorUnits(minor, currency);
   const fractionDigits = Number.isInteger(value) ? 0 : 2;
   const num = value.toLocaleString(locale, {

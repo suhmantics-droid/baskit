@@ -91,7 +91,7 @@ export function evaluateMoments(item: Item, ctx: MomentContext): Moment[] {
       kind: "target_hit",
       priority: 3,
       title: "Price hit your target",
-      body: `${item.name} is ${formatMoney(price, currency)} — at or below your ${formatMoney(
+      body: `${item.name} is ${formatMoney(price, currency)}, at or below your ${formatMoney(
         item.targetPrice,
         currency,
       )} target.`,
@@ -116,7 +116,7 @@ export function evaluateMoments(item: Item, ctx: MomentContext): Moment[] {
       kind: "price_drop",
       priority: 3,
       title: `Price drop on ${item.name}`,
-      body: `${item.name} fell ${pct}% — ${formatMoney(prev, currency)} → ${formatMoney(
+      body: `${item.name} fell ${pct}%, ${formatMoney(prev, currency)} → ${formatMoney(
         price,
         currency,
       )}.`,
@@ -135,7 +135,7 @@ export function evaluateMoments(item: Item, ctx: MomentContext): Moment[] {
       priority: closing ? 4 : 3,
       title: closing ? "Sale closing on something you saved" : "Something you saved is in a sale",
       body: `${item.name}${item.domain ? ` at ${item.domain}` : ""} is in a sale${
-        ctx.sale.text ? ` — ${ctx.sale.text}` : ""
+        ctx.sale.text ? `, ${ctx.sale.text}` : ""
       }.`,
       deeplink,
       dedupeKey: `sale:${item.domain ?? item.id}:${window}`,
@@ -150,7 +150,7 @@ export function evaluateMoments(item: Item, ctx: MomentContext): Moment[] {
         itemId: item.id,
         kind: "cooloff_done",
         priority: 2,
-        title: "Cool-off finished — still want it?",
+        title: "Cool-off finished. Still want it?",
         body: `You waited out the cool-off on ${item.name}. It's ${formatMoney(
           price,
           currency,
@@ -182,7 +182,7 @@ export function evaluateMoments(item: Item, ctx: MomentContext): Moment[] {
         itemId: item.id,
         kind: "budget_window",
         priority: 1,
-        title: `${ctx.budgetWindow.label ?? "Budget window"} — a top pick`,
+        title: `${ctx.budgetWindow.label ?? "Budget window"} : a top pick`,
         body: `${item.name} fits your budget at ${formatMoney(price, currency)} and scores well.`,
         deeplink,
         dedupeKey: `budget_window:${item.id}:${ctx.budgetWindow.id}`,

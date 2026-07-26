@@ -20,10 +20,12 @@ describe("formatMoney", () => {
     expect(formatMoney(129999, "GBP")).toBe("£1,299.99");
   });
 
-  it("renders an em-dash placeholder for null/undefined/NaN", () => {
-    expect(formatMoney(null)).toBe("—");
-    expect(formatMoney(undefined)).toBe("—");
-    expect(formatMoney(NaN)).toBe("—");
+  // En dash, not em: em-dashes are banned in anything a user reads, and an en
+  // dash is the conventional "no value" glyph anyway.
+  it("renders an en-dash placeholder for null/undefined/NaN", () => {
+    expect(formatMoney(null)).toBe("–");
+    expect(formatMoney(undefined)).toBe("–");
+    expect(formatMoney(NaN)).toBe("–");
   });
 
   it("uses the right symbol per currency", () => {

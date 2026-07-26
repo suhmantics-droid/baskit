@@ -105,7 +105,7 @@ export default async function SharedList({ params }: { params: Promise<{ token: 
         )}
 
         <p style={{ marginTop: 40, fontSize: 12.5, color: "var(--ink-faint)", textAlign: "center" }}>
-          Made with <a href="https://baskit.suhmantics.com" style={{ color: "var(--accent)" }}>Baskit</a> — your record,
+          Made with <a href="https://baskit.suhmantics.com" style={{ color: "var(--accent)" }}>Baskit</a>: your record,
           your budget, the right time to buy ·{" "}
           <a href="https://baskit.suhmantics.com/privacy.html" style={{ color: "inherit" }}>
             Privacy

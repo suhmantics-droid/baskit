@@ -108,8 +108,9 @@ body {
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  /* --font-sans is Instrument Sans, loaded in layout.tsx. The system stack is a
+     genuine fallback here, not the intended render. */
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }

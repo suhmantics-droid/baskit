@@ -7,7 +7,7 @@
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
   transition: background 0.2s, color 0.2s;
@@ -137,7 +137,7 @@ main.page { padding: 22px 24px 90px; min-width: 0; }
 .lhead .crumb a:hover { color: var(--ink); text-decoration: underline; }
 .lhead .lt { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
 .lhead h1 { font-family: var(--font-display, Georgia), Georgia, serif; font-size: 27px; letter-spacing: -0.01em; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-.lhead .due { font-size: 13px; color: var(--ink-soft); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.lhead .due { font-size: 13px; color: var(--ink-soft); }
 .lhead .lacts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .budget-wrap { margin-top: 16px; }
 .overpill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--bad); background: var(--bad-bg); padding: 3px 9px; border-radius: 999px; }
@@ -257,6 +257,9 @@ select.sel { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--lin
 .lp-row input { width: auto; }
 .lp-add { display: flex; gap: 8px; margin-top: 8px; }
 .lp-add input { flex: 1; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; outline: none; background: var(--surface); color: var(--ink); }
+/* this input killed its outline without replacing it: keyboard users lost the
+   caret's only visual anchor. Matches the .field:focus ring above. */
+.lp-add input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
 
 /* detail panel */
 .panel { position: fixed; top: 0; right: 0; height: 100%; width: 440px; max-width: 92vw; background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow); z-index: 62; display: flex; flex-direction: column; }

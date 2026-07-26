@@ -82,7 +82,7 @@ export function PlanPanel({ items, budget, now, onOpen, onBudgetSaved, showToast
     try {
       await api.patchMe({ monthlyBudget: v.trim() === "" || Number.isNaN(n) ? null : toMinorUnits(n) });
       onBudgetSaved();
-      showToast("Budget set — the plan is live");
+      showToast("Budget set, the plan is live");
     } catch {
       showToast("Couldn't save the budget");
     }

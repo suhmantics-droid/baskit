@@ -72,7 +72,7 @@ export function SegDash({ lists, domainLists, items, onSelect, onNewList }: SegD
     <div className="dash-duo">
       <div className="chartbox">
         <h4>Spend map</h4>
-        <div className="sub">Where your saved value sits — hover a slice, click to open</div>
+        <div className="sub">Where your saved value sits. Hover a slice, click to open</div>
         {total > 0 && live.length ? (
           <div className="donut-wrap">
             <div className="donut">
@@ -121,7 +121,7 @@ export function SegDash({ lists, domainLists, items, onSelect, onNewList }: SegD
           </div>
         ) : (
           <div className="hint" style={{ padding: "18px 0" }}>
-            Add items with prices — your spend map draws itself as the segments fill up.
+            Add items with prices and your spend map draws itself as the segments fill up.
           </div>
         )}
       </div>

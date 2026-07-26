@@ -8,7 +8,7 @@
  * point so `npm run worker:check` resolves.
  */
 async function main() {
-  console.log("worker:check — not implemented yet (see backlog E3-5 / docs/05).");
+  console.log("worker:check is not implemented yet (see backlog E3-5 / docs/05).");
 }
 
 main();

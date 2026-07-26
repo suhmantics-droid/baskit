@@ -199,7 +199,7 @@ export function DetailPanel({ itemId, budget, listNames, now, onClose, onEdit, o
             : `Price updated to ${formatMoney(fresh, res.item.currency)}`,
         );
       } else if (c.ok) {
-        showToast("Checked — same price as before");
+        showToast("Checked, same price as before");
       } else if (c.blocked) {
         showToast("This store blocks auto-checks, so we check it less often");
       } else {

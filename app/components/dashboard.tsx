@@ -117,7 +117,7 @@ export function Dashboard({ user }: DashboardProps) {
         setItems(itemsRes.items.map(wireToDomainItem));
         setLists(listsRes.lists);
       } catch {
-        if (!cancelled) showToast("Couldn't load your basket — refresh to retry");
+        if (!cancelled) showToast("Couldn't load your basket, refresh to retry");
       }
     })();
     return () => {
@@ -320,7 +320,7 @@ export function Dashboard({ user }: DashboardProps) {
         api.lists().then((r) => setLists(r.lists)); // caps use bought totals eventually
       } catch {
         patchLocal(id, { bought: it.bought });
-        showToast("Couldn't save that — try again");
+        showToast("Couldn't save that, try again");
       }
     },
     [items, patchLocal, showToast],
@@ -336,7 +336,7 @@ export function Dashboard({ user }: DashboardProps) {
         showToast(!it.fav ? "Added to favourites ♥" : "Removed from favourites");
       } catch {
         patchLocal(id, { fav: it.fav });
-        showToast("Couldn't save that — try again");
+        showToast("Couldn't save that, try again");
       }
     },
     [items, patchLocal, showToast],
@@ -567,7 +567,7 @@ export function Dashboard({ user }: DashboardProps) {
                     <div className="v">{formatMoney(scopedBase.reduce((s, i) => s + (latestPrice(i) ?? 0), 0))}</div>
                   </div>
                 </div>
-                <div className="hint">Tap the ♡ on any card to keep it here — favourites get a small boost in their score.</div>
+                <div className="hint">Tap the ♡ on any card to keep it here. Favourites get a small boost in their score.</div>
               </div>
             </div>
           )}
@@ -774,7 +774,7 @@ export function Dashboard({ user }: DashboardProps) {
             <div className="empty">
               <div className="ic">🧺</div>
               <h3>{displayName && displayName !== "Me" ? `${displayName}, your basket is empty` : "Your basket is empty"}</h3>
-              <p>Add the first thing you&rsquo;ve got your eye on — paste a product link and Baskit pulls the details.</p>
+              <p>Add the first thing you&rsquo;ve got your eye on. Paste a product link and Baskit pulls the details.</p>
               <div style={{ marginTop: 16, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                 <button className="btn" onClick={() => setModal(null)}>
                   Add an item
@@ -876,7 +876,7 @@ export function Dashboard({ user }: DashboardProps) {
               return;
             }
             await refreshData();
-            showToast(`Imported ${data.importedItems} items and ${data.importedLists} lists — safe in your account now`);
+            showToast(`Imported ${data.importedItems} items and ${data.importedLists} lists and they are safe in your account now`);
           } catch {
             showToast("Couldn't read that file");
           }

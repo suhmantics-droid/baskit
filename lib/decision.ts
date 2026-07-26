@@ -85,7 +85,7 @@ export function scoreItem(item: Item, ctx: DecisionContext): Decision {
   if (age >= 14 && item.status !== "want") add(6, `You've wanted this for ${age} days`);
 
   if (item.stock === "out") add(-6, "Currently out of stock");
-  else if (item.stock === "low") add(4, "Low stock — may sell out");
+  else if (item.stock === "low") add(4, "Low stock, may sell out");
 
   if (item.fav) add(4, "One of your favourites");
 
@@ -97,11 +97,11 @@ export function scoreItem(item: Item, ctx: DecisionContext): Decision {
   if (score >= 70) {
     band = "Buy it";
     cls = "go";
-    verdict = "Worth getting — the signals line up";
+    verdict = "Worth getting, the signals line up";
   } else if (score >= 48) {
     band = "Leaning yes";
     cls = "cool";
-    verdict = "Promising — just check the budget";
+    verdict = "Promising, just check the budget";
   } else if (score >= 28) {
     band = "Hold off";
     cls = "decide";
