@@ -48,3 +48,6 @@ next-env.d.ts
 diag.mjs
 shot.mjs
 shot-avatar.mjs
+
+# one-off migration scripts
+scripts/tmp-*
