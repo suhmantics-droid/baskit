@@ -3,8 +3,18 @@
   "short_name": "Baskit",
   "description": "Your record. Your budget. The right time to buy.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#fafaf8",
   "theme_color": "#16130f",
-  "icons": [{ "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }]
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "maskable" }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
 }

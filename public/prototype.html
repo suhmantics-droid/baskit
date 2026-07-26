@@ -1471,7 +1471,11 @@ function renderSidebar(){
 
   $("fetchBtn").onclick=function(){ var url=$("f_url").value.trim(); if(!url){ $("f_url").focus(); toast("Paste a product link first"); return; } var btn=$("fetchBtn"); btn.innerHTML='<span class="spin"></span>'; btn.disabled=true; var slowHint=setTimeout(function(){ toast("Reading the store, one moment…",4000); },3500);
     fetchMeta(url).then(function(m){ clearTimeout(slowHint); btn.innerHTML="Fetch"; btn.disabled=false;
-      if(m.title&&!$("f_name").value) $("f_name").value=m.title;
+      // a name shared in from a phone is often chatter ("Check this out"), so the
+      // store's own product title wins over anything flagged provisional
+      var nEl=$("f_name");
+      if(m.title&&(!nEl.value||nEl.getAttribute("data-provisional")==="1")) nEl.value=m.title;
+      nEl.removeAttribute("data-provisional");
       if(m.img&&!$("f_img").value) $("f_img").value=m.img;
       if(m.stock&&$("f_stock").value==="unknown") $("f_stock").value=m.stock;
       var done=function(price,cur,fxNote){
@@ -1563,7 +1567,7 @@ function renderSidebar(){
     else if(filter.list!=="all") pickSel[filter.list]=true;
     $("modalTitle").textContent="Add an item"; $("deleteBtn").style.visibility="hidden";
     ["f_name","f_url","f_img","f_price","f_target","f_tags","f_code","f_notes","f_cat","lp_new"].forEach(function(k){ $(k).value=""; });
-    $("f_cur").value=CUR; $("f_stock").value="unknown"; setWant(0); $("f_cooldown").value="7"; setSeg("want"); renderTagSuggest();
+    $("f_cur").value=CUR; $("f_stock").value="unknown"; setWant(0); $("f_cooldown").value="7"; setSeg("want"); $("f_name").removeAttribute("data-provisional"); renderTagSuggest();
     if(prefill.name)$("f_name").value=prefill.name; if(prefill.url)$("f_url").value=prefill.url; if(prefill.price)$("f_price").value=prefill.price; if(prefill.img)$("f_img").value=prefill.img;
     renderListPicker(); openWrap("modalWrap"); setTimeout(function(){ $((prefill.url&&!prefill.name)?"f_url":"f_name").focus(); },50);
   }
@@ -1665,6 +1669,28 @@ function renderSidebar(){
     if(e.key==="Enter"&&$("modalWrap").classList.contains("open")&&document.activeElement.tagName!=="TEXTAREA"&&document.activeElement.id!=="lp_new"&&document.activeElement.id!=="f_url"){ saveItem(); }
   });
 
+  // capture from the phone's Share button (PWA share_target → manifest action "/")
+  // Android hands over title/text/url, but many apps stuff the link inside
+  // `text` ("Nice dress https://shop/x"), so pull a URL out of either.
+  function handleShareQuery(){
+    var qs=(location.search||"").replace(/^\?/,""); if(!qs) return false;
+    var params={};
+    qs.split("&").forEach(function(kv){ var p=kv.split("="); if(p[0]) params[p[0]]=decodeURIComponent((p[1]||"").replace(/\+/g," ")); });
+    var text=params.text||"", url=params.url||"";
+    if(!url){ var m=text.match(/https?:\/\/\S+/); if(m) url=m[0]; }
+    if(!url) return false;
+    var name=(params.title||"").trim();
+    if(!name&&text) name=text.replace(/https?:\/\/\S+/,"").trim();
+    try{ history.replaceState(null,"",location.pathname); }catch(e){}
+    ensureProfile();
+    openAdd({ name:name, url:url, price:"", img:"" });
+    // the shared name is a placeholder until the store gives us the real one
+    if(name) $("f_name").setAttribute("data-provisional","1");
+    // sharing should do the work: pull the real name, price and image straight away
+    var fb=$("fetchBtn"); if(fb) setTimeout(function(){ fb.click(); },250);
+    return true;
+  }
+
   // capture from bookmarklet
   function handleHash(){
     var h=location.hash||""; if(h.indexOf("#add")!==0) return;
@@ -1699,7 +1725,7 @@ function renderSidebar(){
   try{ if(navigator.storage&&navigator.storage.persist){ navigator.storage.persist(); } }catch(e){}
   // Returning visitor? Greet them by name (a fresh first-run has no profile yet).
   var returningVisitor = db.profiles.length > 0 && !!db.current;
-  render(); handleHash(); maybeAutoRefresh(); syncCloud();
+  render(); handleShareQuery(); handleHash(); maybeAutoRefresh(); syncCloud();
   if (returningVisitor) {
     var wp = currentProfile();
     if (wp && wp.name && wp.name !== "Me") {
