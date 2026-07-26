@@ -68,7 +68,13 @@ const providers: NextAuthConfig["providers"] = [
 ];
 
 if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
-  providers.push(Google);
+  // Link to an existing magic-link account when the email matches. Auth.js calls
+  // this "dangerous" because some OAuth providers hand over emails they never
+  // verified; Google is not one of those. Without it, someone who signed up by
+  // email and later taps "Continue with Google" hits a dead-end
+  // OAuthAccountNotLinked error instead of their own basket — the exact failure
+  // this whole change existed to prevent.
+  providers.push(Google({ allowDangerousEmailAccountLinking: true }));
 }
 
 // Microsoft sign-in, for the hotmail/outlook/live half of the world — the same
