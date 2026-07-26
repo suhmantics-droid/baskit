@@ -52,6 +52,12 @@ export function Dashboard({ user }: DashboardProps) {
   const [modal, setModal] = useState<Item | null | undefined>(undefined);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [scope, setScope] = useState<Scope>("all");
+  /**
+   * Testers asked to land on their things, not on charts ("straight to the saved
+   * items without scrolling"), so Items is the default and the budget cockpit
+   * sits one tap away. Remembered per device.
+   */
+  const [homeView, setHomeView] = useState<"items" | "plan">("items");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   /** undefined = closed; otherwise create (list null) or edit under a parent. */
   const [listModal, setListModal] = useState<{ list: WireListNode | null; parentId: string | null } | undefined>(undefined);
@@ -99,6 +105,12 @@ export function Dashboard({ user }: DashboardProps) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Restored here rather than in a lazy initialiser: localStorage does not
+      // exist during SSR, so reading it at first render would desync hydration.
+      try {
+        const saved = localStorage.getItem("baskit.homeView");
+        if (!cancelled && (saved === "plan" || saved === "items")) setHomeView(saved);
+      } catch {}
       try {
         const [itemsRes, listsRes] = await Promise.all([api.items(), api.lists()]);
         if (cancelled) return;
@@ -188,6 +200,18 @@ export function Dashboard({ user }: DashboardProps) {
       counts.set(c, (counts.get(c) ?? 0) + 1);
     }
     return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [items]);
+
+  /** Most-used tags, commonest first — offered as chips when adding an item. */
+  const tagSuggestions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const it of items ?? []) {
+      for (const t of it.tags) {
+        const k = t.trim();
+        if (k) counts.set(k, (counts.get(k) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t);
   }, [items]);
 
   /** Effective view: a scoped list can vanish (deleted) — fall back to All without state churn. */
@@ -601,6 +625,30 @@ export function Dashboard({ user }: DashboardProps) {
           )}
 
           {view === "all" && (
+            <div className="chips" style={{ marginBottom: 14 }}>
+              {(
+                [
+                  ["items", "Items"],
+                  ["plan", "Plan"],
+                ] as const
+              ).map(([v, label]) => (
+                <button
+                  key={v}
+                  className={homeView === v ? "chip active" : "chip"}
+                  onClick={() => {
+                    setHomeView(v);
+                    try {
+                      localStorage.setItem("baskit.homeView", v);
+                    } catch {}
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {view === "all" && homeView === "plan" && (
           <div className="stats">
             <div className="stat">
               <div className="k"><span className="ki">🧺</span>Items saved</div>
@@ -625,7 +673,7 @@ export function Dashboard({ user }: DashboardProps) {
           </div>
           )}
 
-          {view === "all" && items && items.length > 0 && (
+          {view === "all" && homeView === "plan" && items && items.length > 0 && (
             <PlanPanel
               items={items}
               budget={user.monthlyBudget}
@@ -635,7 +683,7 @@ export function Dashboard({ user }: DashboardProps) {
               showToast={showToast}
             />
           )}
-          {view === "all" && (
+          {view === "all" && homeView === "plan" && (
             <SegDash
               lists={lists ?? []}
               domainLists={domainLists}
@@ -750,6 +798,11 @@ export function Dashboard({ user }: DashboardProps) {
                   onToggleBought={toggleBought}
                   onToggleFav={toggleFav}
                   onOpen={setDetailId}
+                  onTag={(t) => {
+                    setQ(t);
+                    window.scrollTo(0, 0);
+                    showToast(`Showing everything tagged #${t}`);
+                  }}
                 />
               ))}
             </div>
@@ -763,6 +816,7 @@ export function Dashboard({ user }: DashboardProps) {
           item={modal}
           lists={lists ?? []}
           categories={categories.map(([c]) => c)}
+          tagSuggestions={tagSuggestions}
           defaultListId={view !== "all" && view !== "__fav" && view !== "__bought" ? scope : null}
           onClose={() => setModal(undefined)}
           onSaved={refreshData}

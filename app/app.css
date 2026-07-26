@@ -239,6 +239,16 @@ select.sel { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--lin
 .seg button { flex: 1; padding: 9px; background: var(--surface); border: none; font-size: 13px; color: var(--ink-soft); border-right: 1px solid var(--line); }
 .seg button:last-child { border-right: none; }
 .seg button.on { background: var(--ink); color: var(--bg); }
+/* the heart IS the want level, so its "on" state reads as the heart does */
+.wantdial button[data-want="1"].on { background: #e0426e; color: #fff; }
+/* collapsible form section. NOT .drop — that is the price-drop badge above. */
+.optdrop { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); }
+.optdrop > summary { display: flex; align-items: center; gap: 8px; padding: 11px 13px; cursor: pointer; font-size: 13.5px; list-style: none; }
+.optdrop > summary::-webkit-details-marker { display: none; }
+.optdrop > summary::after { content: "▾"; margin-left: auto; color: var(--ink-faint); transition: transform 0.15s; }
+.optdrop[open] > summary::after { transform: rotate(180deg); }
+.optdrop > summary em { font-style: normal; color: var(--ink-faint); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.optdrop > .optbody { padding: 0 13px 13px; display: flex; flex-direction: column; gap: 14px; }
 .del { color: var(--bad); background: none; border: none; font-size: 13px; padding: 8px 4px; }
 .del:hover { text-decoration: underline; }
 .listpick { border: 1px solid var(--line-strong); border-radius: 10px; max-height: 168px; overflow-y: auto; padding: 6px; }

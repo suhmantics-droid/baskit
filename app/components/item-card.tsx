@@ -43,9 +43,11 @@ export interface ItemCardProps {
   onToggleBought: (id: string) => void;
   onToggleFav: (id: string) => void;
   onOpen: (id: string) => void;
+  /** Tap a #tag to see everything carrying it, across every list. */
+  onTag?: (tag: string) => void;
 }
 
-export function ItemCard({ item, decision, listNames, onToggleBought, onToggleFav, onOpen }: ItemCardProps) {
+export function ItemCard({ item, decision, listNames, onToggleBought, onToggleFav, onOpen, onTag }: ItemCardProps) {
   const price = latestPrice(item);
   const was = firstPrice(item);
   const sk = STOCK[item.stock] ?? STOCK.unknown;
@@ -126,7 +128,20 @@ export function ItemCard({ item, decision, listNames, onToggleBought, onToggleFa
         {(item.tags.length > 0 || item.code) && (
           <div className="meta">
             {item.tags.slice(0, 2).map((t) => (
-              <span key={t} className="tag">
+              <span
+                key={t}
+                className="tag"
+                style={onTag ? { cursor: "pointer" } : undefined}
+                title={onTag ? `See everything tagged #${t}` : undefined}
+                onClick={
+                  onTag
+                    ? (e) => {
+                        e.stopPropagation(); // the card itself opens the detail panel
+                        onTag(t);
+                      }
+                    : undefined
+                }
+              >
                 #{t}
               </span>
             ))}
