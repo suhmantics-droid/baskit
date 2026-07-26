@@ -73,7 +73,15 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers,
-  session: { strategy: "database" },
+  // 90 days, refreshed daily while someone keeps using Baskit. Every sign-in
+  // means digging a magic link out of a junk folder, so the honest trade is a
+  // longer session: this is a shopping list, not a bank, and the basket is
+  // already only reachable from the signed-in device.
+  session: {
+    strategy: "database",
+    maxAge: 90 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
+  },
   pages: {}, // default Auth.js pages until the Epic 2 UI lands
   callbacks: {
     session({ session, user }) {
