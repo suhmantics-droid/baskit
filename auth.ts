@@ -13,6 +13,7 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Resend from "next-auth/providers/resend";
 import Google from "next-auth/providers/google";
+import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 
@@ -68,6 +69,15 @@ const providers: NextAuthConfig["providers"] = [
 
 if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
   providers.push(Google);
+}
+
+// Microsoft sign-in, for the hotmail/outlook/live half of the world — the same
+// mailboxes whose spam filters are harshest on a young sending domain, so these
+// are exactly the users a magic link serves worst. Issuer is deliberately left
+// unset: Auth.js then defaults to /common/, which admits personal Microsoft
+// accounts as well as work ones. Inert until the two env vars exist.
+if (process.env.AUTH_MICROSOFT_ENTRA_ID_ID && process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET) {
+  providers.push(MicrosoftEntraID);
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
