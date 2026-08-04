@@ -47,16 +47,32 @@ function mascot(mood, size, inkColour) {
 }
 
 /**
- * The actual Baskit logo, copied out of the product: a lowercase b cradled in
- * the mint basket sweep. The mascot is a character, not the mark, so the brand
- * lockup uses this.
+ * Sagar's supplied logo, used as the artwork itself rather than redrawn, so it
+ * cannot drift from the mark he actually owns. Transparent PNG, so it sits on
+ * the off-white ground with no plate behind it. Its own colours are the brand:
+ * navy #122234 and mint #48b89a, both sampled from this file.
  */
-const logo = (size, ink = "#241d13") =>
+const logoPng = readFileSync(`${root}public/baskit-logo.png`).toString("base64");
+// The supplied file is a vertical stack (mark, wordmark, tagline) which goes
+// unreadable at corner size, so the lockup shows the MARK cropped out of it and
+// sets the lowercase wordmark alongside. Source is 1254 square; the mark sits
+// roughly x 470-800, y 195-700.
+const SRC = 1254;
+const logo = ({ w = 330, h = 505, x = 470, y = 195, box = 64 } = {}) => {
+  const scale = box / w;
+  return `<span class="mark" style="width:${box}px;height:${Math.round(h * scale)}px;
+    background-image:url(data:image/png;base64,${logoPng});
+    background-size:${Math.round(SRC * scale)}px ${Math.round(SRC * scale)}px;
+    background-position:-${Math.round(x * scale)}px -${Math.round(y * scale)}px"></span>`;
+};
+
+/** The mark alone, for the small square slots the full lockup would not suit. */
+const markOnly = (size, ink = "#122234") =>
   `<svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none">
-    <path d="M20 6v36" stroke="${ink}" stroke-width="6" stroke-linecap="round"/>
-    <circle cx="33" cy="29.5" r="13" stroke="${ink}" stroke-width="6"/>
-    <path d="M9.5 40H14l6 16.5a5 5 0 0 0 4.8 3.5h14.4a5 5 0 0 0 4.8-3.5L50 40h4.5" stroke="#3fbf9f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M26.5 49.5h11" stroke="#3fbf9f" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M22 8v34" stroke="${ink}" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M22 24a11 11 0 1 1 0 22" stroke="${ink}" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M14 42h36l-5 14a5 5 0 0 1-4.8 3.5H23.8A5 5 0 0 1 19 56Z" stroke="${ink}" stroke-width="5.5" stroke-linejoin="round" fill="none"/>
+    <path d="M27 49h10" stroke="#48b89a" stroke-width="5" stroke-linecap="round"/>
   </svg>`;
 
 const stroke = (d, c = "#0f5f4b", w = 2.2) =>
@@ -70,14 +86,15 @@ html = html
   .replace("<!--FONTS-->", fonts)
   // On the cream ground the body is cream too, so the outline and face must be
   // the warm ink or they vanish into it. Learned the hard way at 300px.
-  .replaceAll("MASCOT_BIG", mascot("hello", 250, "#241d13"))
-  .replaceAll("LOGO_SM", logo(40))
-  .replaceAll("LOGO_PUSH", logo(26, "#f2ebdc"))
-  .replaceAll("TICK_DK", tick("#0f5f4b"))
-  .replaceAll("ICON_LINK", stroke('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.5 5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12.5 19"/>'))
-  .replaceAll("ICON_LIST", stroke('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.4"/><circle cx="3.5" cy="12" r="1.4"/><circle cx="3.5" cy="18" r="1.4"/>'))
-  .replaceAll("ICON_TREND", stroke('<path d="M3 17l6-6 4 4 8-8"/><path d="M21 11V7h-4"/>'))
-  .replaceAll("ICON_CLOCK", stroke('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'));
+  .replaceAll("MASCOT_BIG", mascot("hello", 250, "#122234"))
+  .replaceAll("LOGO_SM", logo())
+  .replaceAll("LOGO_PUSH", markOnly(24, "#ffffff"))
+  .replaceAll("TICK_DK", tick("#2f9c7f"))
+  .replaceAll("ICON_LINK", stroke('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.5 5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12.5 19"/>', "#2f9c7f"))
+  .replaceAll("ICON_LIST", stroke('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.4"/><circle cx="3.5" cy="12" r="1.4"/><circle cx="3.5" cy="18" r="1.4"/>', "#2f9c7f"))
+  .replaceAll("ICON_WALLET", stroke('<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="17" cy="14.5" r="1.4"/>', "#2f9c7f"))
+  .replaceAll("ICON_TREND", stroke('<path d="M3 17l6-6 4 4 8-8"/><path d="M21 11V7h-4"/>', "#2f9c7f"))
+  .replaceAll("ICON_CLOCK", stroke('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', "#2f9c7f"));
 
 const built = `${root}marketing/carousel.built.html`;
 writeFileSync(built, html, "utf8");
