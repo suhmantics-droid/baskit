@@ -123,7 +123,8 @@
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 14px 0 18px; }
   .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 15px; }
   .stat .k { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint); }
-  .stat .k .ki { margin-right: 5px; }
+  .stat .k { display: flex; align-items: center; gap: 6px; }
+  .stat .k .ki { margin-right: 0; display: inline-flex; align-items: center; color: var(--ink-soft); }
   .stat .v { font-family: var(--display); font-size: 24px; font-weight: 600; letter-spacing: 0; margin-top: 3px; font-variant-numeric: tabular-nums; }
   .stat .s { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
@@ -632,7 +633,7 @@
 <div class="modal-wrap" id="tourWrap">
   <div class="modal" style="max-width:400px">
     <div class="mbody" style="text-align:center; padding:34px 26px 26px">
-      <div id="tourIcon" style="font-size:44px; margin-bottom:10px"></div>
+      <div id="tourIcon" style="margin-bottom:10px; display:flex; justify-content:center; color:var(--ink-soft)"></div>
       <h2 id="tourTitle" style="margin:0 0 6px; font-family:var(--display); font-size:21px; letter-spacing:0"></h2>
       <p id="tourLine" style="margin:0; color:var(--ink-soft); font-size:14.5px"></p>
       <div id="tourDots" style="display:flex; gap:6px; justify-content:center; margin:18px 0 16px"></div>
@@ -785,7 +786,12 @@
              + '<path d="M44 65h12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
       // pleased, after a purchase that was actually worth it
       bought:  '<path d="M36 54q5 -6 10 0M54 54q5 -6 10 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>'
-             + '<path d="M42 65q8 7 16 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>'
+             + '<path d="M42 65q8 7 16 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>',
+      // eyeing up what it is holding. The tongue is a thick round-capped stroke
+      // rather than a filled shape so it still reads at stat-tile size.
+      hungry:  eyes(0)
+             + '<path d="M42 63q8 7 16 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>'
+             + '<path d="M57 66q7 1 7.5 -7" stroke="#e0426e" stroke-width="4.6" stroke-linecap="round" fill="none"/>'
     }[mood]||"";
     // Only what sits above the basket changes with mood; the basket never does.
     var above={
@@ -1335,7 +1341,7 @@ function renderSidebar(){
     var capped=lists().filter(function(l){return l.cap;});
     var over=capped.filter(function(l){return listSpent(l.id)>l.cap;}).length;
     $("stats").innerHTML=
-      stat("🧺","Items saved",all.length,"in "+lists().length+" lists")+
+      stat(mascot("hungry",26),"Items saved",all.length,"in "+lists().length+" lists")+
       stat("💷","Total value",money(total),"across your basket")+
       stat("⏳","Ready to decide",ready,ready?"cool-off finished":"none waiting")+
       stat("🚦","Lists over cap",over,capped.length?(over?"trim these":"all within budget"):"no caps set");
@@ -1444,7 +1450,10 @@ function renderSidebar(){
   function openTour(){ tourStep=0; renderTourStep(); openWrap("tourWrap"); }
   function renderTourStep(){
     var s=TOUR[tourStep];
-    $("tourIcon").textContent=s.i; $("tourTitle").textContent=s.t; $("tourLine").textContent=s.l;
+    // The mascot introduces itself here, changing mood as the story does: it
+    // waves, then waits, then approves. Every new tester meets it on step one.
+    $("tourIcon").innerHTML=mascot(["hello","waiting","bought"][tourStep]||"hello",84);
+    $("tourTitle").textContent=s.t; $("tourLine").textContent=s.l;
     $("tourDots").innerHTML=TOUR.map(function(_,i){ return '<span style="width:7px;height:7px;border-radius:50%;background:'+(i===tourStep?"var(--ink)":"var(--line-strong)")+'"></span>'; }).join("");
     $("tourNext").textContent=tourStep===TOUR.length-1?"Start planning":"Next";
   }

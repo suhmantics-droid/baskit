@@ -1,0 +1,156 @@
+<!--FONTS-->
+<style>
+  /* Tokens lifted verbatim from public/welcome.html so the carousel and the
+     landing page are the same brand, not a near miss. Cream is the GROUND and
+     the deep pine is an accent used sparingly, which is the way round the warm
+     ledger works. */
+  :root{
+    --paper:#f2ebdc; --paper-2:#e7dec9; --card:#fbf6ea;
+    --ink:#241d13; --ink-soft:#4a4032; --ink-faint:#7a6e56;
+    --accent:#0f5f4b; --accent-soft:#15795f;
+    --line:rgba(36,29,19,.18); --line-strong:rgba(36,29,19,.34);
+    --mint:#3fbf9f;
+    --display:"Fraunces","Iowan Old Style",Palatino,Georgia,serif;
+    --sans:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --shadow:0 1px 0 rgba(36,29,19,.07),0 18px 42px rgba(36,29,19,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2620;font-family:var(--sans)}
+  .slide{
+    width:1080px;height:1080px;background:var(--paper);color:var(--ink);
+    padding:70px 74px;position:relative;overflow:hidden;display:flex;flex-direction:column;
+  }
+  /* the same grain film the site wears */
+  .slide::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.42;mix-blend-mode:soft-light;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:140px 140px}
+
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:56px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand .wm{font-family:var(--display);font-size:31px;font-weight:600;letter-spacing:-.025em;line-height:1}
+  /* mono kicker with a hairline marker, the site's metadata ornament */
+  .kicker{font-family:var(--mono);font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);display:flex;align-items:center;gap:12px}
+  .kicker::before{content:"";width:26px;height:1px;background:var(--hair,rgba(36,29,19,.5))}
+
+  h1{font-family:var(--display);font-weight:600;font-size:74px;line-height:1.04;letter-spacing:-.035em;margin-bottom:24px;max-width:15ch}
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{font-size:26px;line-height:1.5;max-width:30ch;color:var(--ink-soft);margin-bottom:38px}
+
+  .rows{display:flex;flex-direction:column;gap:13px;max-width:640px}
+  .row{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 24px;display:flex;align-items:center;gap:18px;box-shadow:var(--shadow)}
+  .row .ic{width:46px;height:46px;flex:0 0 auto;border-radius:12px;background:rgba(15,95,75,.09);display:grid;place-items:center}
+  .row .val{display:block;font-size:22px;font-weight:600;line-height:1.25}
+  .row .sub{display:block;font-size:17px;color:var(--ink-soft);margin-top:3px;line-height:1.35}
+
+  .steps{display:flex;flex-direction:column;gap:22px;max-width:640px}
+  .step{display:flex;align-items:flex-start;gap:20px}
+  .step .n{width:46px;height:46px;flex:0 0 auto;border-radius:50%;background:var(--accent);color:var(--paper);display:grid;place-items:center;font-family:var(--mono);font-size:19px;font-weight:700}
+  .step .tx{font-size:24px;font-weight:600;line-height:1.3;padding-top:7px}
+  .step .tx small{display:block;font-size:18px;font-weight:400;color:var(--ink-soft);margin-top:4px;line-height:1.4}
+
+  .cta{display:inline-flex;align-items:center;gap:12px;background:var(--ink);color:var(--paper);border-radius:999px;padding:20px 34px;font-size:23px;font-weight:600;align-self:flex-start;margin-top:36px}
+
+  .foot{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;padding-top:28px;border-top:1px solid var(--line)}
+  .next{font-family:var(--mono);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  .dots{display:flex;gap:8px;padding-bottom:4px}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--line-strong)}
+  .dots i.on{background:var(--accent)}
+
+  /* the product, mocked in its own skin */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px 26px;box-shadow:var(--shadow)}
+  .card .nm{font-size:23px;font-weight:600;line-height:1.25;margin-bottom:14px}
+  .card .meta{display:flex;align-items:baseline;gap:13px;margin-bottom:16px}
+  .card .price{font-family:var(--mono);font-size:33px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .card .was{font-family:var(--mono);font-size:18px;color:var(--ink-faint);text-decoration:line-through}
+  .card .drop{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--accent);background:rgba(15,95,75,.1);border-radius:999px;padding:5px 12px}
+  .verdict{display:flex;align-items:center;gap:10px;color:var(--accent);font-size:18px;font-weight:600;border-top:1px solid var(--line);padding-top:15px}
+  .push{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:17px 20px;display:flex;gap:14px;align-items:flex-start;box-shadow:var(--shadow)}
+  .push .ico{width:42px;height:42px;border-radius:11px;background:var(--accent);display:grid;place-items:center;flex:0 0 auto}
+  .push .t{display:block;font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  .push .b{display:block;font-size:17px;line-height:1.4;margin-top:4px}
+  .stack{position:absolute;right:74px;bottom:150px;width:430px;display:flex;flex-direction:column;gap:16px}
+  .telemetry{font-family:var(--mono);font-size:14px;letter-spacing:.06em;color:var(--ink-faint);display:flex;gap:10px;align-items:center;margin-top:20px}
+  .telemetry::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--mint)}
+  .art{position:absolute;right:66px;bottom:130px}
+</style>
+
+<!-- ============ 1. WHAT IT IS ============ -->
+<div class="slide" id="s1">
+  <div class="top">
+    <div class="brand">MASCOT_SM<span class="wm">baskit</span></div>
+    <div class="kicker">What it is</div>
+  </div>
+  <h1>Everything you want, in <em>one place</em>.</h1>
+  <p class="lede">Save anything from any UK shop. One record instead of tabs, screenshots and carts you forgot you had.</p>
+  <div class="rows">
+    <div class="row">
+      <span class="ic">ICON_LINK</span>
+      <span><span class="val">Paste a link, or share to it</span><span class="sub">Baskit reads the name, price and photo from the shop itself.</span></span>
+    </div>
+    <div class="row">
+      <span class="ic">ICON_LIST</span>
+      <span><span class="val">Sorted the way you think</span><span class="sub">Christmas, the kids, treat myself. Each with its own budget.</span></span>
+    </div>
+  </div>
+  <div class="telemetry">Works with Primark, John Lewis, Argos, Amazon, M&amp;S and the rest</div>
+  <div class="foot">
+    <span class="next">Next: what it solves &rarr;</span>
+    <span class="dots"><i class="on"></i><i></i><i></i></span>
+  </div>
+</div>
+
+<!-- ============ 2. WHAT IT SOLVES ============ -->
+<div class="slide" id="s2">
+  <div class="top">
+    <div class="brand">MASCOT_SM<span class="wm">baskit</span></div>
+    <div class="kicker">What it solves</div>
+  </div>
+  <h1>The right time to buy. <em>Or wait</em>.</h1>
+  <p class="lede">Baskit re-checks the price, works out whether it fits your budget, and tells you when it is genuinely worth buying.</p>
+  <div class="rows" style="max-width:440px">
+    <div class="row">
+      <span class="ic">ICON_TREND</span>
+      <span><span class="val">It watches the price</span><span class="sub">And tells you the moment it drops.</span></span>
+    </div>
+    <div class="row">
+      <span class="ic">ICON_CLOCK</span>
+      <span><span class="val">Cool off before you decide</span><span class="sub">The 30 day rule, run for you.</span></span>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="card">
+      <div class="nm">Sleeveless Midaxi Dress</div>
+      <div class="meta"><span class="price">&pound;14.00</span><span class="was">&pound;22.00</span><span class="drop">&darr; &pound;8.00</span></div>
+      <div class="verdict">TICK_DK Good time to buy</div>
+    </div>
+    <div class="push">
+      <span class="ico">MASCOT_PUSH</span>
+      <span><span class="t">Baskit</span><span class="b">The dress you saved dropped &pound;8. Your cool off finished yesterday.</span></span>
+    </div>
+  </div>
+  <div class="foot">
+    <span class="next">Next: how easy &rarr;</span>
+    <span class="dots"><i></i><i class="on"></i><i></i></span>
+  </div>
+</div>
+
+<!-- ============ 3. HOW EASY ============ -->
+<div class="slide" id="s3">
+  <div class="top">
+    <div class="brand">MASCOT_SM<span class="wm">baskit</span></div>
+    <div class="kicker">How easy</div>
+  </div>
+  <h1>Share it. Baskit <em>does the rest</em>.</h1>
+  <p class="lede">No app store, no forms. Three taps and it runs itself.</p>
+  <div class="steps">
+    <div class="step"><span class="n">1</span><span class="tx">Add it to your home screen<small>Straight from the browser. Nothing to download.</small></span></div>
+    <div class="step"><span class="n">2</span><span class="tx">Share any product to it<small>It reads the name, price and photo on its own.</small></span></div>
+    <div class="step"><span class="n">3</span><span class="tx">It watches the price for you<small>And tells you when it is worth buying.</small></span></div>
+  </div>
+  <span class="cta">Try it free &rarr;</span>
+  <div class="art">MASCOT_BIG</div>
+  <div class="foot">
+    <span class="next">baskit.suhmantics.com</span>
+    <span class="dots"><i></i><i></i><i class="on"></i></span>
+  </div>
+</div>
