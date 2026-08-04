@@ -17,15 +17,45 @@ import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 
+/**
+ * Sign-in codes, not sign-in links.
+ *
+ * Outlook, Hotmail and every corporate mail gateway run link scanners that
+ * FETCH each URL in a message to check it for malware. Auth.js verification
+ * tokens are single use, so the scanner consumes the token and the human then
+ * taps a link that no longer exists: "the sign-in link is no longer valid".
+ * The giveaway was a token being created on request and no row surviving for
+ * anyone to click.
+ *
+ * A code cannot be clicked. Ambiguous characters (0/O, 1/I/L) are excluded so
+ * it can be read off a screen and typed without a second attempt. 30 usable
+ * characters over 7 places is about 2.2e10 combinations, and codes live 15
+ * minutes rather than 24 hours, so guessing is not a realistic route in.
+ */
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no O, 0, I, L, 1
+const CODE_LENGTH = 7;
+
+function generateSignInCode(): string {
+  const bytes = new Uint8Array(CODE_LENGTH);
+  crypto.getRandomValues(bytes);
+  let out = "";
+  for (let i = 0; i < CODE_LENGTH; i++) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+  return out;
+}
+
 const providers: NextAuthConfig["providers"] = [
   Resend({
     apiKey: process.env.AUTH_RESEND_KEY ?? process.env.RESEND_API_KEY,
     from: process.env.EMAIL_FROM ?? "Baskit <onboarding@resend.dev>",
-    // Branded magic-link email. DEBUG_MAGIC_LINK=1 (local dev only, never set in
-    // production) additionally logs the link so the flow can be tested without
-    // inbox access.
-    async sendVerificationRequest({ identifier, url, provider }) {
-      if (process.env.DEBUG_MAGIC_LINK === "1") console.log("MAGIC_LINK", url);
+    maxAge: 15 * 60,
+    generateVerificationToken: generateSignInCode,
+    // Branded sign-in email. DEBUG_MAGIC_LINK=1 (local dev only, never set in
+    // production) additionally logs the code so the flow can be tested without
+    // inbox access. There is deliberately NO clickable verification link in this
+    // email: a scanner that follows one burns the single-use token.
+    async sendVerificationRequest({ identifier, url, provider, token }) {
+      if (process.env.DEBUG_MAGIC_LINK === "1") console.log("SIGNIN_CODE", token, url);
+      const enterAt = new URL(url).origin + "/verify";
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -37,29 +67,23 @@ const providers: NextAuthConfig["providers"] = [
           to: [identifier],
           // The branded sender is send-only (no inbox) — replies reach a human.
           reply_to: process.env.EMAIL_REPLY_TO ?? "suhmantics@gmail.com",
-          subject: "Your Baskit sign-in link",
-          // Written to read as the legit transactional email it is, not the
-          // bare button+link shape spam filters distrust from a young domain:
-          // real sender identity, context for why it arrived, and the plain URL
-          // visible as a fallback (helps filters and users when the button
-          // doesn't render).
+          subject: `${token} is your Baskit sign-in code`,
           html: [
             // Warm ledger palette to match the brand: cream paper, rich warm
-            // ink, deep-green accent — not washed grey on white.
+            // ink, deep-green accent, not washed grey on white.
             '<div style="font-family:Georgia,\'Iowan Old Style\',serif;background:#f2ebdc;padding:36px 20px">',
             '<div style="max-width:440px;margin:0 auto;background:#fbf6ea;border:1px solid rgba(36,29,19,0.14);border-radius:16px;padding:32px 28px;color:#241d13">',
             '<div style="font-weight:700;font-size:22px;letter-spacing:-0.02em;margin-bottom:20px">Baskit</div>',
             '<p style="font-size:16px;line-height:1.55;color:#241d13;margin:0 0 8px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Hi,</p>',
-            '<p style="font-size:16px;line-height:1.55;color:#3a3227;margin:0 0 22px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Someone (hopefully you) asked to sign in to Baskit with this email address. Tap the button and your basket will be saved to your account, safe on any device.</p>',
-            `<a href="${url}" style="display:inline-block;background:#241d13;color:#fbf6ea;text-decoration:none;padding:14px 26px;border-radius:999px;font-size:15px;font-weight:600;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Sign in to Baskit</a>`,
-            '<p style="font-size:13px;line-height:1.5;color:#6b6051;margin:24px 0 6px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Or paste this link into your browser:</p>',
-            `<p style="font-size:12.5px;line-height:1.5;margin:0 0 24px;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"><a href="${url}" style="color:#0f5f4b">${url}</a></p>`,
-            '<p style="font-size:13px;line-height:1.5;color:#7a6e56;margin:0 0 5px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">This link works once and expires in 24 hours.</p>',
+            '<p style="font-size:16px;line-height:1.55;color:#3a3227;margin:0 0 20px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Someone (hopefully you) asked to sign in to Baskit. Enter this code on the sign-in page:</p>',
+            `<div style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:34px;font-weight:700;letter-spacing:0.16em;text-align:center;background:#f2ebdc;border:1px solid rgba(36,29,19,0.14);border-radius:12px;padding:18px 10px;margin:0 0 20px;color:#241d13">${token}</div>`,
+            `<p style="font-size:14px;line-height:1.55;color:#3a3227;margin:0 0 22px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">Go to <strong>${enterAt.replace(/^https?:\/\//, "")}</strong> and type it in. Already have the sign-in page open? Just enter it there.</p>`,
+            '<p style="font-size:13px;line-height:1.5;color:#7a6e56;margin:0 0 5px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">The code works once and expires in 15 minutes.</p>',
             '<p style="font-size:13px;line-height:1.5;color:#7a6e56;margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">If you didn\'t ask to sign in, you can safely ignore this email and nothing will happen. Questions? Just reply.</p>',
             '<p style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#9a8e74;margin:24px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">Baskit &middot; a universal wishlist and price tracker</p>',
             "</div></div>",
           ].join(""),
-          text: `Hi,\n\nSomeone (hopefully you) asked to sign in to Baskit with this email address. Open this link to sign in and save your basket to your account:\n\n${url}\n\nThis link works once and expires in 24 hours. If you didn't ask to sign in, you can safely ignore this email. Questions? Just reply.\n\nBaskit - a universal wishlist and price tracker`,
+          text: `Hi,\n\nSomeone (hopefully you) asked to sign in to Baskit.\n\nYour sign-in code is: ${token}\n\nGo to ${enterAt} and type it in. The code works once and expires in 15 minutes.\n\nIf you didn't ask to sign in, you can safely ignore this email. Questions? Just reply.\n\nBaskit - a universal wishlist and price tracker`,
         }),
       });
       if (!res.ok) throw new Error(`Resend send failed: ${res.status} ${await res.text()}`);
@@ -98,7 +122,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     maxAge: 90 * 24 * 60 * 60,
     updateAge: 24 * 60 * 60,
   },
-  pages: {}, // default Auth.js pages until the Epic 2 UI lands
+  pages: {
+    // After asking for a code, land on the form that takes it. Auth.js would
+    // otherwise show "check your email for a link", which is no longer true.
+    verifyRequest: "/verify",
+    // A wrong or already-used code comes back to the same form with a reason,
+    // rather than a dead-end error screen.
+    error: "/verify",
+  },
   callbacks: {
     session({ session, user }) {
       // expose the stable user id to the app (route handlers check ownership by it)

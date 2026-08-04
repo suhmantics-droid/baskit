@@ -8,6 +8,7 @@
 import { prisma } from "@/lib/db";
 import { requireUser, UnauthorizedError, unauthorizedResponse } from "@/lib/session";
 import { countItems, wouldWipeBasket } from "@/lib/backup-guard";
+import { mergeBaskets, totalItems, type ProtoDb } from "@/lib/merge-basket";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 // Raised from 1MB when photo-attach landed: items can carry ~20-50KB compressed
@@ -47,25 +48,28 @@ export async function PUT(request: Request) {
       return Response.json({ error: "not_a_basket" }, { status: 400 });
     }
 
+    const existing = await prisma.user.findUnique({ where: { id }, select: { demoBackup: true } });
+
     // Never let an empty basket flatten a populated one (see lib/backup-guard).
-    // Only read the stored copy when the incoming one is empty, so the common
-    // path stays a single write.
-    if (countItems(db) === 0) {
-      const existing = await prisma.user.findUnique({ where: { id }, select: { demoBackup: true } });
-      if (wouldWipeBasket(db, existing?.demoBackup)) {
-        return Response.json(
-          { error: "refusing_empty_overwrite", storedItems: countItems(existing?.demoBackup) },
-          { status: 409 },
-        );
-      }
+    if (wouldWipeBasket(db, existing?.demoBackup)) {
+      return Response.json(
+        { error: "refusing_empty_overwrite", storedItems: countItems(existing?.demoBackup) },
+        { status: 409 },
+      );
     }
+
+    // The server is the merge point. A device that has been offline pushes a
+    // basket missing whatever happened elsewhere; writing it verbatim would
+    // drop those additions. Union instead, so a push can only ever add.
+    const merged = mergeBaskets(db as ProtoDb, (existing?.demoBackup ?? null) as ProtoDb | null);
 
     const at = new Date();
     await prisma.user.update({
       where: { id },
-      data: { demoBackup: db as Prisma.InputJsonValue, demoBackupAt: at },
+      data: { demoBackup: merged as unknown as Prisma.InputJsonValue, demoBackupAt: at },
     });
-    return Response.json({ ok: true, at });
+    // Hand the merge back so the client can adopt anything it did not have.
+    return Response.json({ ok: true, at, db: merged, items: totalItems(merged) });
   } catch (e) {
     if (e instanceof UnauthorizedError) return unauthorizedResponse();
     throw e;
