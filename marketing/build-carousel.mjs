@@ -46,6 +46,19 @@ function mascot(mood, size, inkColour) {
     ${faces[mood] ?? faces.hello}</svg>`;
 }
 
+/**
+ * The actual Baskit logo, copied out of the product: a lowercase b cradled in
+ * the mint basket sweep. The mascot is a character, not the mark, so the brand
+ * lockup uses this.
+ */
+const logo = (size, ink = "#241d13") =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none">
+    <path d="M20 6v36" stroke="${ink}" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="33" cy="29.5" r="13" stroke="${ink}" stroke-width="6"/>
+    <path d="M9.5 40H14l6 16.5a5 5 0 0 0 4.8 3.5h14.4a5 5 0 0 0 4.8-3.5L50 40h4.5" stroke="#3fbf9f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M26.5 49.5h11" stroke="#3fbf9f" stroke-width="5.5" stroke-linecap="round"/>
+  </svg>`;
+
 const stroke = (d, c = "#0f5f4b", w = 2.2) =>
   `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 
@@ -58,8 +71,8 @@ html = html
   // On the cream ground the body is cream too, so the outline and face must be
   // the warm ink or they vanish into it. Learned the hard way at 300px.
   .replaceAll("MASCOT_BIG", mascot("hello", 250, "#241d13"))
-  .replaceAll("MASCOT_SM", mascot("hungry", 34, "#241d13"))
-  .replaceAll("MASCOT_PUSH", mascot("hello", 28, "#f2ebdc"))
+  .replaceAll("LOGO_SM", logo(40))
+  .replaceAll("LOGO_PUSH", logo(26, "#f2ebdc"))
   .replaceAll("TICK_DK", tick("#0f5f4b"))
   .replaceAll("ICON_LINK", stroke('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.5 5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12.5 19"/>'))
   .replaceAll("ICON_LIST", stroke('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.4"/><circle cx="3.5" cy="12" r="1.4"/><circle cx="3.5" cy="18" r="1.4"/>'))
