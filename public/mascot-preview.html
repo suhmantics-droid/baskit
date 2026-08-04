@@ -1,0 +1,54 @@
+<title>Baskit mascot, three moods</title>
+<style>
+  :root{--bg:#fafaf8;--surface:#fff;--ink:#16130f;--ink-soft:#6b665e;--ink-faint:#776f63;--line:#ece9e3;--line-strong:#ddd8cf;--accent:#2a78d6}
+  html[data-theme="dark"]{--bg:#141311;--surface:#1c1a17;--ink:#f4f1ea;--ink-soft:#b0aaa0;--ink-faint:#8a8378;--line:#2a2723;--line-strong:#3a352f;--accent:#3987e5}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:40px 20px}
+  h1{font-size:22px;letter-spacing:-.02em;margin:0 0 6px}
+  p.sub{color:var(--ink-soft);font-size:14px;margin:0 0 30px}
+  .row{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:34px}
+  .cell{flex:1;min-width:200px;background:var(--surface);border:1px dashed var(--line-strong);border-radius:16px;padding:30px 18px;text-align:center;color:var(--ink-soft)}
+  .cell .lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);margin-top:12px}
+  .cell .cap{font-size:13.5px;color:var(--ink);margin-top:8px;font-weight:600}
+  .sizes{display:flex;align-items:flex-end;gap:20px;justify-content:center;color:var(--ink-soft)}
+  button{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer}
+</style>
+<h1>Baskit mascot</h1>
+<p class="sub">Same tapered body and handle as the logo. Calm on purpose: this product tells people not to buy things.</p>
+<button onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')">Toggle theme</button>
+<div class="row" id="moods" style="margin-top:22px"></div>
+<h1 style="font-size:16px">At size</h1>
+<p class="sub">It has to survive being small.</p>
+<div class="cell"><div class="sizes" id="sizes"></div></div>
+<script>
+function mascot(mood, size){
+  var s=size||96;
+  var face={
+    hello:   '<circle cx="26" cy="38" r="2.3" fill="currentColor"/><circle cx="38" cy="38" r="2.3" fill="currentColor"/>'
+           + '<path d="M27.5 45q4.5 3.4 9 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>',
+    empty:   '<circle cx="27.2" cy="38" r="2.3" fill="currentColor"/><circle cx="39.2" cy="38" r="2.3" fill="currentColor"/>'
+           + '<path d="M28.5 45.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    waiting: '<path d="M23.5 38q2.5 2.6 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
+           + '<path d="M35.5 38q2.5 2.6 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
+           + '<path d="M28.5 45.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+  }[mood]||"";
+  var above={
+    hello:   '<path d="M32 12v5M25.6 14.2l2.2 4.2M38.4 14.2l-2.2 4.2" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>',
+    empty:   '<path d="M24 17h16" stroke="var(--line-strong)" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"/>',
+    waiting: '<circle cx="32" cy="15" r="6" stroke="var(--accent)" stroke-width="2" fill="none"/>'
+           + '<path d="M32 11.5V15l2.4 1.6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" fill="none"/>'
+  }[mood]||"";
+  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 64 64" fill="none" role="img" aria-hidden="true">'
+    + above
+    + '<path d="M23 27a9 9 0 0 1 18 0" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" fill="none"/>'
+    + '<path d="M13 27h38" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'
+    + '<path d="M16.5 30.5 20 51a5 5 0 0 0 5 4.2h14a5 5 0 0 0 5-4.2l3.5-20.5" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'
+    + face + '</svg>';
+}
+var moods=[["hello","First run","Nothing saved yet"],["empty","Empty basket","Signed in, nothing in it"],["waiting","Cooling off","The answer is not yet"]];
+document.getElementById("moods").innerHTML=moods.map(function(m){
+  return '<div class="cell">'+mascot(m[0],104)+'<div class="cap">'+m[1]+'</div><div class="lbl">'+m[2]+'</div></div>';
+}).join("");
+document.getElementById("sizes").innerHTML=[104,72,48,32,20].map(function(s){
+  return '<div style="text-align:center">'+mascot("hello",s)+'<div style="font-size:11px;margin-top:6px">'+s+'px</div></div>';
+}).join("");
+</script>

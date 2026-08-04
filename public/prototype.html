@@ -216,6 +216,8 @@
   .empty { text-align: center; padding: 60px 20px; border: 1px dashed var(--line-strong); border-radius: var(--radius); color: var(--ink-soft); }
   .empty h3 { font-family: var(--display); color: var(--ink); margin: 14px 0 6px; font-weight: 600; font-size: 19px; }
   .empty .ic { font-size: 34px; opacity: .55; }
+  /* the mascot carries its own weight, so it does not want the icon fade */
+  .empty .ic:has(svg) { opacity: 1; color: var(--ink-soft); display: flex; justify-content: center; }
 
   .overlay { position: fixed; inset: 0; background: rgba(20,16,10,.42); backdrop-filter: blur(2px); z-index: 60; display: none; }
   .overlay.open { display: block; }
@@ -673,6 +675,52 @@
 
   // ---------- cloud backup (sync-lite): signed-in visitors keep their basket ----------
   var cloud={ user:null, announced:false, pushTimer:null };
+  /**
+   * The basket, alive. Built from the same tapered body and handle as the logo
+   * so it reads as Baskit rather than a bolted-on character, and drawn as inline
+   * SVG (currentColor + the accent) so it themes itself and stays crisp at any
+   * size.
+   *
+   * It has a job rather than a face on everything: it appears at the three
+   * moments the screen is otherwise emotionally flat, and nowhere else.
+   *   hello   first run, nothing saved yet
+   *   empty   signed in, basket genuinely empty
+   *   waiting a cool-off is running, the answer is "not yet"
+   *
+   * Deliberately calm. This product tells people NOT to buy things, so a
+   * cheering mascot would be arguing with the product.
+   */
+  function mascot(mood, size){
+    var s=size||96;
+    var face={
+      hello:   '<circle cx="26" cy="38" r="2.3" fill="currentColor"/><circle cx="38" cy="38" r="2.3" fill="currentColor"/>'
+             + '<path d="M27.5 45q4.5 3.4 9 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>',
+      // looking off to the side, waiting to be given something
+      empty:   '<circle cx="27.2" cy="38" r="2.3" fill="currentColor"/><circle cx="39.2" cy="38" r="2.3" fill="currentColor"/>'
+             + '<path d="M28.5 45.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      // eyes shut, patiently sitting it out
+      waiting: '<path d="M23.5 38q2.5 2.6 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
+             + '<path d="M35.5 38q2.5 2.6 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
+             + '<path d="M28.5 45.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+    }[mood]||"";
+    // what sits above the basket changes with the mood, never the basket itself
+    var above={
+      hello:   '<path d="M32 12v5M25.6 14.2l2.2 4.2M38.4 14.2l-2.2 4.2" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>',
+      empty:   '<path d="M24 17h16" stroke="var(--line-strong)" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"/>',
+      waiting: '<circle cx="32" cy="15" r="6" stroke="var(--accent)" stroke-width="2" fill="none"/>'
+             + '<path d="M32 11.5V15l2.4 1.6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" fill="none"/>'
+    }[mood]||"";
+    return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 64 64" fill="none" role="img" aria-hidden="true">'
+      + above
+      // handle, echoing the logo's sweep
+      + '<path d="M23 27a9 9 0 0 1 18 0" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" fill="none"/>'
+      // rim
+      + '<path d="M13 27h38" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'
+      // tapered body
+      + '<path d="M16.5 30.5 20 51a5 5 0 0 0 5 4.2h14a5 5 0 0 0 5-4.2l3.5-20.5" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'
+      + face
+      + '</svg>';
+  }
   function countLocalItems(d){ var n=0; try{ var m=d&&d.items||{}; for(var k in m){ if(m[k]&&m[k].length) n+=m[k].length; } }catch(e){} return n; }
   /**
    * Union this device's basket with the cloud copy. Mirrors lib/merge-basket.ts
@@ -1434,7 +1482,7 @@ function renderSidebar(){
       var whose=cloud.user&&cloud.user.email
         ? '<p class="hint" style="margin-top:10px">Signed in as <b>'+esc(cloud.user.email)+'</b>. Expected to see things here? You may have saved them under a different email, so try signing in with that one.</p>'
         : "";
-      wrap.innerHTML='<div class="empty"><div class="ic">🧺</div><h3>'+(_pn?(esc(_pn)+", your basket is empty"):"Your basket is empty")+'</h3><p>Add the first thing you\'ve got your eye on.</p><div style="margin-top:16px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap"><button class="btn" id="empAdd">Add an item</button><button class="btn ghost" id="empSegs">✨ Pick segments</button><button class="btn ghost" id="empSeed">Load samples</button></div>'+whose+'</div>';
+      wrap.innerHTML='<div class="empty"><div class="ic">'+mascot(cloud.user?"empty":"hello",92)+'</div><h3>'+(_pn?(esc(_pn)+", your basket is empty"):"Your basket is empty")+'</h3><p>Add the first thing you\'ve got your eye on.</p><div style="margin-top:16px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap"><button class="btn" id="empAdd">Add an item</button><button class="btn ghost" id="empSegs">✨ Pick segments</button><button class="btn ghost" id="empSeed">Load samples</button></div>'+whose+'</div>';
       $("empAdd").onclick=function(){ openAdd(); }; $("empSegs").onclick=function(){ openSegPicker(false); }; $("empSeed").onclick=seed; return;
     }
     if(list.length===0){ wrap.innerHTML='<div class="empty"><div class="ic">🔍</div><h3>Nothing here yet</h3><p>Add an item to this list, or change the filters.</p></div>'; return; }
