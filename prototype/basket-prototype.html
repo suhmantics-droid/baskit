@@ -60,7 +60,10 @@
 
   header { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: saturate(180%) blur(12px); border-bottom: 1px solid var(--line); }
   .bar { max-width: 1320px; margin: 0 auto; padding: 13px 20px; display: flex; align-items: center; gap: 14px; }
-  .hamb { display: none; }
+  /* Specificity matters here: plain .hamb loses to .icon-btn below, which sets
+     display:grid, so the button showed on desktop where the sidebar is already
+     open and tapping it did nothing. */
+  .icon-btn.hamb { display: none; }
   .logo { display: flex; align-items: center; gap: 9px; font-weight: 600; letter-spacing: -.02em; font-size: 18px; white-space: nowrap; }
   .logo .dot { width: 20px; height: 20px; border: 1.6px solid var(--ink); border-radius: 6px 6px 8px 8px; position: relative; }
   .logo .dot::after { content:""; position:absolute; inset: 3px 3px auto 3px; height: 3px; border-radius: 2px; background: var(--ink); }
@@ -404,7 +407,7 @@
   @media (max-width: 1080px) { .stats { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 900px) {
     .app { grid-template-columns: 1fr; }
-    .hamb { display: grid; }
+    .icon-btn.hamb { display: grid; }
     .sidebar { position: fixed; top: 0; left: 0; height: 100%; width: 280px; background: var(--surface); z-index: 63; transform: translateX(-100%); transition: transform .24s; padding-top: 18px; }
     .sidebar.open { transform: translateX(0); box-shadow: var(--shadow); }
   }
@@ -1140,14 +1143,11 @@
  */
 function renderSaveBar(){
   var bar=$("saveBar"); if(!bar||!db.current) return;
-  if(cloud.user){
-    bar.innerHTML='<div class="savebar saved"><div class="txt"><b>✅ Signed in as '+esc(cloud.user.email)+'</b>'
-      +'<span>Every change backs up automatically, and signing in on another device merges the two baskets rather than replacing either.</span></div>'
-      +'<button class="btn ghost sm" id="saveBarSwitch">Switch account</button></div>';
-    var sw=$("saveBarSwitch");
-    if(sw) sw.onclick=function(){ location.href="/api/auth/signin?callbackUrl=%2F"; };
-    return;
-  }
+  // Signed in needs no banner: it is the normal state, and a permanent green
+  // bar telling you so is a standing interruption on the one screen people
+  // actually use. The account still shows in the menu, and an empty basket
+  // names it where the confusion actually happens.
+  if(cloud.user){ bar.innerHTML=""; return; }
   var n=items().length;
   if(!n){
     bar.innerHTML='<div class="savebar"><div class="txt"><b>🔐 Keep your basket safe</b>'
