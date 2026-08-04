@@ -903,18 +903,21 @@
 function renderSaveBar(){
   var bar=$("saveBar"); if(!bar||!db.current) return;
   if(cloud.user){
-    bar.innerHTML='<div class="savebar saved"><div class="txt"><b>✅ Saved to '+esc(cloud.user.email)+'</b>'
-      +'<span>Every change backs up automatically. Sign in on any device to pick it up there.</span></div></div>';
+    bar.innerHTML='<div class="savebar saved"><div class="txt"><b>✅ Signed in as '+esc(cloud.user.email)+'</b>'
+      +'<span>Every change backs up automatically, and signing in on another device merges the two baskets rather than replacing either.</span></div>'
+      +'<button class="btn ghost sm" id="saveBarSwitch">Switch account</button></div>';
+    var sw=$("saveBarSwitch");
+    if(sw) sw.onclick=function(){ location.href="/api/auth/signin?callbackUrl=%2F"; };
     return;
   }
   var n=items().length;
   if(!n){
     bar.innerHTML='<div class="savebar"><div class="txt"><b>🔐 Keep your basket safe</b>'
-      +'<span>Add your email and it saves to the cloud, so it survives a new phone or a browser clear. No password needed, we email you a link.</span></div>'
+      +'<span>Add your email and it saves to the cloud, so it survives a new phone or a browser clear. No password needed, we email you a short code.</span></div>'
       +'<button class="btn ghost sm" id="saveBarBtn">Save my basket</button></div>';
   } else {
     bar.innerHTML='<div class="savebar warn"><div class="txt"><b>⚠️ This basket is only on this phone</b>'
-      +'<span>'+n+' item'+(n===1?"":"s")+' saved here. Clear your browser or switch device and it is gone. Add your email to keep it, no password needed.</span></div>'
+      +'<span>'+n+' item'+(n===1?"":"s")+' saved here. Clear your browser or switch device and it is gone. Add your email to keep it, we send a short code, no password needed.</span></div>'
       +'<button class="btn sm" id="saveBarBtn">Save my basket</button></div>';
   }
   var b=$("saveBarBtn");
@@ -1425,7 +1428,13 @@ function renderSidebar(){
     var list=visibleItems(), wrap=$("gridWrap");
     if(items().length===0){
       var _pn=(currentProfile()&&currentProfile().name&&currentProfile().name!=="Me")?currentProfile().name:null;
-      wrap.innerHTML='<div class="empty"><div class="ic">🧺</div><h3>'+(_pn?(esc(_pn)+", your basket is empty"):"Your basket is empty")+'</h3><p>Add the first thing you\'ve got your eye on.</p><div style="margin-top:16px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap"><button class="btn" id="empAdd">Add an item</button><button class="btn ghost" id="empSegs">✨ Pick segments</button><button class="btn ghost" id="empSeed">Load samples</button></div></div>';
+      // An empty basket while signed in is the confusing case: it looks like
+      // lost data when it is usually a second account. Name the account so the
+      // emptiness explains itself.
+      var whose=cloud.user&&cloud.user.email
+        ? '<p class="hint" style="margin-top:10px">Signed in as <b>'+esc(cloud.user.email)+'</b>. Expected to see things here? You may have saved them under a different email, so try signing in with that one.</p>'
+        : "";
+      wrap.innerHTML='<div class="empty"><div class="ic">🧺</div><h3>'+(_pn?(esc(_pn)+", your basket is empty"):"Your basket is empty")+'</h3><p>Add the first thing you\'ve got your eye on.</p><div style="margin-top:16px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap"><button class="btn" id="empAdd">Add an item</button><button class="btn ghost" id="empSegs">✨ Pick segments</button><button class="btn ghost" id="empSeed">Load samples</button></div>'+whose+'</div>';
       $("empAdd").onclick=function(){ openAdd(); }; $("empSegs").onclick=function(){ openSegPicker(false); }; $("empSeed").onclick=seed; return;
     }
     if(list.length===0){ wrap.innerHTML='<div class="empty"><div class="ic">🔍</div><h3>Nothing here yet</h3><p>Add an item to this list, or change the filters.</p></div>'; return; }
