@@ -123,6 +123,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     updateAge: 24 * 60 * 60,
   },
   pages: {
+    // Our own page, so Google leads and the typed email can be carried through
+    // to the code screen instead of being asked for twice.
+    signIn: "/signin",
     // After asking for a code, land on the form that takes it. Auth.js would
     // otherwise show "check your email for a link", which is no longer true.
     verifyRequest: "/verify",

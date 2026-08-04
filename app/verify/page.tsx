@@ -8,7 +8,9 @@
  */
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { VerifyForm } from "./verify-form";
+import { REMEMBERED_EMAIL_COOKIE } from "../remember-email";
 
 export const metadata = {
   title: "Enter your sign-in code",
@@ -23,5 +25,6 @@ export default async function VerifyPage({
   const session = await auth();
   if (session?.user) redirect("/");
   const { email = "", error = "" } = await searchParams;
-  return <VerifyForm initialEmail={email} error={error} />;
+  const remembered = (await cookies()).get(REMEMBERED_EMAIL_COOKIE)?.value ?? "";
+  return <VerifyForm initialEmail={email || remembered} error={error} />;
 }

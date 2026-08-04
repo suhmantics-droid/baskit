@@ -9,6 +9,7 @@ import { useState } from "react";
 const CODE_LENGTH = 7;
 
 export function VerifyForm({ initialEmail, error }: { initialEmail: string; error: string }) {
+  // Arrives already filled from the cookie set on the previous screen.
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
