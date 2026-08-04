@@ -14,17 +14,16 @@ const root = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "
 const OUT = `${root}marketing/out`;
 mkdirSync(OUT, { recursive: true });
 
-// Brand faces: Fraunces is embedded in the marketing page, Instrument Sans is a file.
-const welcome = readFileSync(`${root}public/welcome.html`, "utf8");
-const fraunces = welcome.match(/@font-face \{ font-family: 'Fraunces';[^}]*\}/)?.[0];
-if (!fraunces) throw new Error("Fraunces face not found in welcome.html");
-const sans = readFileSync(`${root}public/fonts/instrument-sans-latin.woff2`).toString("base64");
-
-const fonts = `<style>
-${fraunces}
-@font-face { font-family:'Instrument Sans'; font-style:normal; font-weight:400 700; font-display:block;
-  src:url(data:font/woff2;base64,${sans}) format('woff2'); }
-</style>`;
+// Poppins is the brand pack's primary face. Google serves three subsets per
+// weight; the latin one is the small file, which is all this needs.
+const POPPINS = { 400: "poppins-2", 500: "poppins-5", 600: "poppins-8", 700: "poppins-11" };
+const fonts = `<style>${Object.entries(POPPINS)
+  .map(
+    ([weight, file]) =>
+      `@font-face{font-family:'Poppins';font-style:normal;font-weight:${weight};font-display:block;
+        src:url(data:font/woff2;base64,${readFileSync(`${root}public/fonts/${file}.woff2`).toString("base64")}) format('woff2');}`,
+  )
+  .join("\n")}</style>`;
 
 /** The mascot, same geometry the product ships. */
 function mascot(mood, size, inkColour) {
@@ -58,12 +57,32 @@ const logoPng = readFileSync(`${root}public/baskit-logo.png`).toString("base64")
 // sets the lowercase wordmark alongside. Source is 1254 square; the mark sits
 // roughly x 470-800, y 195-700.
 const SRC = 1254;
-const logo = ({ w = 330, h = 505, x = 470, y = 195, box = 64 } = {}) => {
-  const scale = box / w;
-  return `<span class="mark" style="width:${box}px;height:${Math.round(h * scale)}px;
+
+/**
+ * A crop of the supplied logo, no redraw.
+ *
+ * The artwork is navy and mint, drawn for a light background, so on the green
+ * ground the navy goes muddy and the mint basket sinks into it. Rather than
+ * recolour someone's logo, it sits on a white plate, which is what every brand
+ * does with a light-background mark on a coloured field.
+ *
+ * Regions in the 1254 square source:
+ *   mark  x 470-800, y 195-700
+ *   full  x 180-1080, y 180-1010  (mark, wordmark and tagline together)
+ */
+const CROPS = {
+  mark: { x: 470, y: 195, w: 330, h: 505 },
+  full: { x: 180, y: 180, w: 900, h: 830 },
+};
+const logoCrop = (which, boxW, pad = 0) => {
+  const c = CROPS[which];
+  const scale = boxW / c.w;
+  return `<span style="display:block;width:${Math.round(boxW)}px;height:${Math.round(c.h * scale)}px;
     background-image:url(data:image/png;base64,${logoPng});
+    background-repeat:no-repeat;
     background-size:${Math.round(SRC * scale)}px ${Math.round(SRC * scale)}px;
-    background-position:-${Math.round(x * scale)}px -${Math.round(y * scale)}px"></span>`;
+    background-position:-${Math.round(c.x * scale)}px -${Math.round(c.y * scale)}px;
+    margin:${pad}px"></span>`;
 };
 
 /**
@@ -71,12 +90,29 @@ const logo = ({ w = 330, h = 505, x = 470, y = 195, box = 64 } = {}) => {
  * basket, same proportions as the supplied logo; the one bar it already has
  * simply curves. Sagar's ask, and it costs the mark nothing.
  */
-const markSmile = (size, ink = "#ffffff", accent = "#48b89a") =>
+/**
+ * The mark, drawn clean.
+ *
+ * Redrawing a supplied logo is normally the wrong call, and I made it the wrong
+ * way twice. It is right here for one reason: public/baskit-logo.png carries a
+ * grey smudge where the b's bowl crosses the basket, which any faithful crop
+ * reproduces. The brand pack shows the two shapes overlapping cleanly, so this
+ * follows the pack: navy b, mint basket, crisp intersection.
+ *
+ * `smile` curves the basket's bar, which is the only change from the pack.
+ */
+const NAVY = "#0F1D2E";
+const MINT = "#2DBF9E";
+const mark = (size, { ink = NAVY, basket = MINT, smile = false } = {}) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 100 100" fill="none">
-    <path d="M35 10v48" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>
-    <circle cx="51" cy="43" r="16" stroke="${ink}" stroke-width="8"/>
-    <path d="M22 58h56l-7 26a8 8 0 0 1-7.7 6H36.7a8 8 0 0 1-7.7-6Z" stroke="${ink}" stroke-width="8" stroke-linejoin="round" fill="none"/>
-    <path d="M41 72q9 9 18 0" stroke="${accent}" stroke-width="7" stroke-linecap="round" fill="none"/>
+    <path d="M25 60h50l-6.5 23a7 7 0 0 1-6.7 5H38.2a7 7 0 0 1-6.7-5Z" stroke="${basket}" stroke-width="7.5" stroke-linejoin="round" fill="none"/>
+    ${
+      smile
+        ? `<path d="M41 71q9 8 18 0" stroke="${basket}" stroke-width="7" stroke-linecap="round" fill="none"/>`
+        : `<path d="M41 72h18" stroke="${basket}" stroke-width="7" stroke-linecap="round"/>`
+    }
+    <path d="M38 12v46" stroke="${ink}" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M38 34h11a17 17 0 0 1 0 34h-3" stroke="${ink}" stroke-width="8.5" stroke-linecap="round" fill="none"/>
   </svg>`;
 
 /** A pile of screenshots, the problem this whole thing exists for. */
@@ -105,15 +141,15 @@ html = html
   .replace("<!--FONTS-->", fonts)
   // On the cream ground the body is cream too, so the outline and face must be
   // the warm ink or they vanish into it. Learned the hard way at 300px.
-  .replaceAll("MARK_BIG", markSmile(230))
+  .replaceAll("MARK_BIG", mark(250, { basket: "#ffffff", smile: true }))
   .replaceAll("SHOT_PILE", shotPile())
-  .replaceAll("LOGO_SM", markSmile(58))
-  .replaceAll("TICK_DK", tick("#17795e"))
-  .replaceAll("ICON_LINK", stroke('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.5 5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12.5 19"/>', "#17795e"))
-  .replaceAll("ICON_LIST", stroke('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.4"/><circle cx="3.5" cy="12" r="1.4"/><circle cx="3.5" cy="18" r="1.4"/>', "#17795e"))
-  .replaceAll("ICON_WALLET", stroke('<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="17" cy="14.5" r="1.4"/>', "#17795e"))
-  .replaceAll("ICON_TREND", stroke('<path d="M3 17l6-6 4 4 8-8"/><path d="M21 11V7h-4"/>', "#17795e"))
-  .replaceAll("ICON_CLOCK", stroke('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', "#17795e"));
+  .replaceAll("LOGO_SM", mark(46, { basket: "#ffffff" }))
+  .replaceAll("TICK_DK", tick("#0F1D2E"))
+  .replaceAll("ICON_LINK", stroke('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.5 5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12.5 19"/>', "#0F1D2E"))
+  .replaceAll("ICON_LIST", stroke('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.4"/><circle cx="3.5" cy="12" r="1.4"/><circle cx="3.5" cy="18" r="1.4"/>', "#0F1D2E"))
+  .replaceAll("ICON_WALLET", stroke('<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="17" cy="14.5" r="1.4"/>', "#0F1D2E"))
+  .replaceAll("ICON_TREND", stroke('<path d="M3 17l6-6 4 4 8-8"/><path d="M21 11V7h-4"/>', "#0F1D2E"))
+  .replaceAll("ICON_CLOCK", stroke('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', "#0F1D2E"));
 
 const built = `${root}marketing/carousel.built.html`;
 writeFileSync(built, html, "utf8");

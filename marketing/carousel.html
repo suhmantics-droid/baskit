@@ -4,27 +4,27 @@
      the logo mint so BOTH work on it: white body clears 4.5:1 at 5.34, navy
      clears the 3:1 display floor at 3.02. The logo mint stays as the accent. */
   :root{
-    --green:#17795e;
-    --white:#ffffff; --navy:#122234; --mint:#48b89a;
-    --soft:rgba(255,255,255,.87); --faint:rgba(255,255,255,.62);
-    --sans:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;
+    --green:#2DBF9E;
+    --white:#ffffff; --navy:#0F1D2E; --mint:#2DBF9E;
+    --soft:rgba(15,29,46,.82); --faint:rgba(15,29,46,.58);
+    --sans:'Poppins',Montserrat,ui-sans-serif,system-ui,sans-serif;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --shadow:0 18px 44px rgba(6,40,31,.22);
+    --shadow:0 16px 40px rgba(15,29,46,.16);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:#0c1a15;font-family:var(--sans)}
-  .slide{width:1080px;height:1080px;background:var(--green);color:var(--white);
+  .slide{width:1080px;height:1080px;background:var(--green);color:var(--navy);
     padding:58px 64px;position:relative;overflow:hidden;display:flex;flex-direction:column}
   .slide::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.06;mix-blend-mode:soft-light;
     background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:140px 140px}
 
   .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px}
   .brand{display:flex;align-items:center;gap:12px}
-  .brand .wm{font-size:33px;font-weight:600;letter-spacing:-.03em;line-height:1}
+  .brand .wm{font-size:31px;font-weight:600;letter-spacing:-.03em;line-height:1;color:var(--navy)}
   .kicker{font-family:var(--mono);font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
 
   h1{font-size:74px;font-weight:700;line-height:1.04;letter-spacing:-.035em;margin-bottom:18px;max-width:15ch}
-  h1 b{color:var(--navy);font-weight:700}
+  h1 b{color:var(--white);font-weight:700}
   .lede{font-size:24px;line-height:1.45;max-width:29ch;color:var(--soft)}
 
   .rows{display:flex;flex-direction:column;gap:12px}
@@ -35,7 +35,7 @@
 
   .steps{display:flex;flex-direction:column;gap:13px}
   .step{background:var(--white);color:var(--navy);border-radius:18px;padding:16px 21px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow)}
-  .step .n{width:42px;height:42px;flex:0 0 auto;border-radius:50%;background:var(--green);color:var(--white);display:grid;place-items:center;font-family:var(--mono);font-size:18px;font-weight:700}
+  .step .n{width:42px;height:42px;flex:0 0 auto;border-radius:50%;background:var(--navy);color:var(--white);display:grid;place-items:center;font-family:var(--mono);font-size:18px;font-weight:700}
   .step .tx{font-size:20.5px;font-weight:700;line-height:1.25}
   .step .tx small{display:block;font-size:16px;font-weight:400;color:#5a6b78;margin-top:2px}
 
@@ -45,11 +45,11 @@
   .foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:20px}
   .next{font-family:var(--mono);font-size:15px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
   .dots{display:flex;gap:8px}
-  .dots i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35)}
-  .dots i.on{background:var(--white)}
+  .dots i{width:9px;height:9px;border-radius:50%;background:rgba(15,29,46,.28)}
+  .dots i.on{background:var(--navy)}
 
   .pile{position:absolute;right:30px;top:300px}
-  .art{position:absolute;right:52px;bottom:112px}
+  .art{position:absolute;right:64px;bottom:118px}
 
   .ui{position:absolute;right:64px;bottom:132px;width:396px;display:flex;flex-direction:column;gap:14px}
   .card{background:var(--white);color:var(--navy);border-radius:18px;padding:19px 21px;box-shadow:var(--shadow)}
