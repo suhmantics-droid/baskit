@@ -25,7 +25,7 @@
 
   :root {
     --bg: #fafaf8; --surface: #ffffff; --surface-2: #f6f4ef;
-    --grain: .028; --ink: #16130f; --ink-soft: #6b665e; --ink-faint: #776f63;
+    --grain: .028; --mint: #3fbf9f; --ink: #16130f; --ink-soft: #6b665e; --ink-faint: #776f63;
     --line: #ece9e3; --line-strong: #ddd8cf;
     --good: #2f7d5b; --good-bg: #e7f3ec;
     --warn: #a86b1f; --warn-bg: #f7eede;
@@ -38,7 +38,7 @@
   }
   html[data-theme="dark"] {
     --bg: #141311; --surface: #1c1a17; --surface-2: #232019;
-    --grain: .038; --ink: #f4f1ea; --ink-soft: #b0aaa0; --ink-faint: #8a8378;
+    --grain: .038; --mint: #4ed3b0; --ink: #f4f1ea; --ink-soft: #b0aaa0; --ink-faint: #8a8378;
     --line: #2a2723; --line-strong: #3a352f;
     --good: #57b98a; --good-bg: #16281d;
     --warn: #d29a52; --warn-bg: #2c2213;
@@ -692,32 +692,41 @@
    */
   function mascot(mood, size){
     var s=size||96;
+    // Eyes carry a highlight dot: without it they read as holes, not eyes.
+    function eyes(dx){ dx=dx||0;
+      return '<circle cx="'+(41+dx)+'" cy="53" r="4" fill="currentColor"/><circle cx="'+(59+dx)+'" cy="53" r="4" fill="currentColor"/>'
+           + '<circle cx="'+(42.6+dx)+'" cy="51.6" r="1.4" fill="var(--surface)"/><circle cx="'+(60.6+dx)+'" cy="51.6" r="1.4" fill="var(--surface)"/>'; }
     var face={
-      hello:   '<circle cx="26" cy="38" r="2.3" fill="currentColor"/><circle cx="38" cy="38" r="2.3" fill="currentColor"/>'
-             + '<path d="M27.5 45q4.5 3.4 9 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>',
-      // looking off to the side, waiting to be given something
-      empty:   '<circle cx="27.2" cy="38" r="2.3" fill="currentColor"/><circle cx="39.2" cy="38" r="2.3" fill="currentColor"/>'
-             + '<path d="M28.5 45.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      hello:   eyes(0)+'<path d="M43 64q7 6 14 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>',
+      // glancing aside, waiting to be handed something
+      empty:   eyes(2)+'<path d="M44 65h12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
       // eyes shut, patiently sitting it out
-      waiting: '<path d="M23.5 38q2.5 2.6 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
-             + '<path d="M35.5 38q2.5 2.6 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
-             + '<path d="M28.5 45.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+      waiting: '<path d="M36 53q5 5 10 0M54 53q5 5 10 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>'
+             + '<path d="M44 65h12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+      // pleased, after a purchase that was actually worth it
+      bought:  '<path d="M36 54q5 -6 10 0M54 54q5 -6 10 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>'
+             + '<path d="M42 65q8 7 16 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>'
     }[mood]||"";
-    // what sits above the basket changes with the mood, never the basket itself
+    // Only what sits above the basket changes with mood; the basket never does.
     var above={
-      hello:   '<path d="M32 12v5M25.6 14.2l2.2 4.2M38.4 14.2l-2.2 4.2" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>',
-      empty:   '<path d="M24 17h16" stroke="var(--line-strong)" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"/>',
-      waiting: '<circle cx="32" cy="15" r="6" stroke="var(--accent)" stroke-width="2" fill="none"/>'
-             + '<path d="M32 11.5V15l2.4 1.6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" fill="none"/>'
+      hello:   '<path d="M50 12v7M38 15l3 6M62 15l-3 6" stroke="var(--mint)" stroke-width="4.5" stroke-linecap="round"/>',
+      empty:   '<path d="M34 22h32" stroke="var(--line-strong)" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 8"/>',
+      waiting: '<circle cx="50" cy="18" r="9" fill="var(--surface)" stroke="var(--mint)" stroke-width="4"/>'
+             + '<path d="M50 13v5.5l3.5 2.5" stroke="var(--mint)" stroke-width="3.4" stroke-linecap="round" fill="none"/>',
+      bought:  '<rect x="27" y="21" width="16" height="15" rx="3" fill="var(--surface)" stroke="currentColor" stroke-width="4"/>'
+             + '<circle cx="62" cy="29" r="8.5" fill="var(--surface)" stroke="var(--mint)" stroke-width="4"/>'
     }[mood]||"";
-    return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 64 64" fill="none" role="img" aria-hidden="true">'
+    return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 100 100" fill="none" role="img" aria-hidden="true">'
+      + '<ellipse cx="50" cy="90" rx="26" ry="4" fill="currentColor" opacity=".08"/>'
+      // handle in the logo's own green, so mascot and logo read as one mark
+      + '<path d="M35 34a15 15 0 0 1 30 0" stroke="var(--mint)" stroke-width="5" stroke-linecap="round" fill="none"/>'
       + above
-      // handle, echoing the logo's sweep
-      + '<path d="M23 27a9 9 0 0 1 18 0" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" fill="none"/>'
-      // rim
-      + '<path d="M13 27h38" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'
-      // tapered body
-      + '<path d="M16.5 30.5 20 51a5 5 0 0 0 5 4.2h14a5 5 0 0 0 5-4.2l3.5-20.5" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'
+      // solid body, so it reads as an object rather than an outline
+      + '<path d="M20 36h60l-7 40a9 9 0 0 1-9 8H36a9 9 0 0 1-9-8Z" fill="var(--surface)"/>'
+      + '<path d="M20 36h60l-7 40a9 9 0 0 1-9 8H36a9 9 0 0 1-9-8Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round" fill="none"/>'
+      // weave: faint enough to vanish at small sizes, leaving a clean silhouette
+      + '<path d="M35 47l-1.5 30M50 47v30M65 47l1.5 30" stroke="currentColor" stroke-width="2.6" opacity=".2" stroke-linecap="round"/>'
+      + '<path d="M25.5 58h49" stroke="currentColor" stroke-width="2.6" opacity=".2" stroke-linecap="round"/>'
       + face
       + '</svg>';
   }

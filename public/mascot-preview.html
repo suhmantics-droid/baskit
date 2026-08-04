@@ -1,54 +1,65 @@
-<title>Baskit mascot, three moods</title>
+<title>Baskit mascot</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex" />
 <style>
-  :root{--bg:#fafaf8;--surface:#fff;--ink:#16130f;--ink-soft:#6b665e;--ink-faint:#776f63;--line:#ece9e3;--line-strong:#ddd8cf;--accent:#2a78d6}
-  html[data-theme="dark"]{--bg:#141311;--surface:#1c1a17;--ink:#f4f1ea;--ink-soft:#b0aaa0;--ink-faint:#8a8378;--line:#2a2723;--line-strong:#3a352f;--accent:#3987e5}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:40px 20px}
+  :root{--bg:#fafaf8;--surface:#fff;--surface-2:#f6f4ef;--ink:#16130f;--ink-soft:#6b665e;--ink-faint:#776f63;--line:#ece9e3;--line-strong:#ddd8cf;--mint:#3fbf9f}
+  html[data-theme="dark"]{--bg:#141311;--surface:#1c1a17;--surface-2:#232019;--ink:#f4f1ea;--ink-soft:#b0aaa0;--ink-faint:#8a8378;--line:#2a2723;--line-strong:#3a352f;--mint:#4ed3b0}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:36px 20px;max-width:900px;margin:0 auto}
   h1{font-size:22px;letter-spacing:-.02em;margin:0 0 6px}
-  p.sub{color:var(--ink-soft);font-size:14px;margin:0 0 30px}
-  .row{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:34px}
-  .cell{flex:1;min-width:200px;background:var(--surface);border:1px dashed var(--line-strong);border-radius:16px;padding:30px 18px;text-align:center;color:var(--ink-soft)}
-  .cell .lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);margin-top:12px}
-  .cell .cap{font-size:13.5px;color:var(--ink);margin-top:8px;font-weight:600}
-  .sizes{display:flex;align-items:flex-end;gap:20px;justify-content:center;color:var(--ink-soft)}
+  p.sub{color:var(--ink-soft);font-size:14px;margin:0 0 22px;max-width:60ch;line-height:1.55}
+  .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:22px 0 34px}
+  .cell{background:var(--surface-2);border-radius:16px;padding:24px 12px;text-align:center;color:var(--ink)}
+  .cell .cap{font-size:13.5px;font-weight:650;margin-top:8px}
+  .cell .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin-top:4px}
+  .sizes{background:var(--surface-2);border-radius:16px;padding:22px;display:flex;align-items:flex-end;gap:24px;justify-content:center;flex-wrap:wrap;color:var(--ink)}
+  .sizes div{text-align:center}
+  .sizes span{display:block;font-size:11px;margin-top:6px;color:var(--ink-faint)}
   button{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer}
 </style>
 <h1>Baskit mascot</h1>
-<p class="sub">Same tapered body and handle as the logo. Calm on purpose: this product tells people not to buy things.</p>
+<p class="sub">The basket itself, in the logo's own green. It shows up only where a screen would otherwise be emotionally flat, and stays calm: this product tells people not to buy things, so a cheering mascot would be arguing with the product.</p>
 <button onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')">Toggle theme</button>
-<div class="row" id="moods" style="margin-top:22px"></div>
+<div class="row" id="moods"></div>
 <h1 style="font-size:16px">At size</h1>
-<p class="sub">It has to survive being small.</p>
-<div class="cell"><div class="sizes" id="sizes"></div></div>
+<p class="sub">The weave fades out as it shrinks, leaving a clean silhouette.</p>
+<div class="sizes" id="sizes"></div>
 <script>
 function mascot(mood, size){
   var s=size||96;
+  function eyes(dx){ dx=dx||0;
+    return '<circle cx="'+(41+dx)+'" cy="53" r="4" fill="currentColor"/><circle cx="'+(59+dx)+'" cy="53" r="4" fill="currentColor"/>'
+         + '<circle cx="'+(42.6+dx)+'" cy="51.6" r="1.4" fill="var(--surface)"/><circle cx="'+(60.6+dx)+'" cy="51.6" r="1.4" fill="var(--surface)"/>'; }
   var face={
-    hello:   '<circle cx="26" cy="38" r="2.3" fill="currentColor"/><circle cx="38" cy="38" r="2.3" fill="currentColor"/>'
-           + '<path d="M27.5 45q4.5 3.4 9 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>',
-    empty:   '<circle cx="27.2" cy="38" r="2.3" fill="currentColor"/><circle cx="39.2" cy="38" r="2.3" fill="currentColor"/>'
-           + '<path d="M28.5 45.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-    waiting: '<path d="M23.5 38q2.5 2.6 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
-           + '<path d="M35.5 38q2.5 2.6 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
-           + '<path d="M28.5 45.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+    hello:   eyes(0)+'<path d="M43 64q7 6 14 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>',
+    empty:   eyes(2)+'<path d="M44 65h12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+    waiting: '<path d="M36 53q5 5 10 0M54 53q5 5 10 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>'
+           + '<path d="M44 65h12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+    bought:  '<path d="M36 54q5 -6 10 0M54 54q5 -6 10 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>'
+           + '<path d="M42 65q8 7 16 0" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"/>'
   }[mood]||"";
   var above={
-    hello:   '<path d="M32 12v5M25.6 14.2l2.2 4.2M38.4 14.2l-2.2 4.2" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>',
-    empty:   '<path d="M24 17h16" stroke="var(--line-strong)" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4"/>',
-    waiting: '<circle cx="32" cy="15" r="6" stroke="var(--accent)" stroke-width="2" fill="none"/>'
-           + '<path d="M32 11.5V15l2.4 1.6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" fill="none"/>'
+    hello:   '<path d="M50 12v7M38 15l3 6M62 15l-3 6" stroke="var(--mint)" stroke-width="4.5" stroke-linecap="round"/>',
+    empty:   '<path d="M34 22h32" stroke="var(--line-strong)" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 8"/>',
+    waiting: '<circle cx="50" cy="18" r="9" fill="var(--surface)" stroke="var(--mint)" stroke-width="4"/>'
+           + '<path d="M50 13v5.5l3.5 2.5" stroke="var(--mint)" stroke-width="3.4" stroke-linecap="round" fill="none"/>',
+    bought:  '<rect x="27" y="21" width="16" height="15" rx="3" fill="var(--surface)" stroke="currentColor" stroke-width="4"/>'
+           + '<circle cx="62" cy="29" r="8.5" fill="var(--surface)" stroke="var(--mint)" stroke-width="4"/>'
   }[mood]||"";
-  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 64 64" fill="none" role="img" aria-hidden="true">'
+  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 100 100" fill="none" role="img" aria-hidden="true">'
+    + '<ellipse cx="50" cy="90" rx="26" ry="4" fill="currentColor" opacity=".08"/>'
+    + '<path d="M35 34a15 15 0 0 1 30 0" stroke="var(--mint)" stroke-width="5" stroke-linecap="round" fill="none"/>'
     + above
-    + '<path d="M23 27a9 9 0 0 1 18 0" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" fill="none"/>'
-    + '<path d="M13 27h38" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>'
-    + '<path d="M16.5 30.5 20 51a5 5 0 0 0 5 4.2h14a5 5 0 0 0 5-4.2l3.5-20.5" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'
+    + '<path d="M20 36h60l-7 40a9 9 0 0 1-9 8H36a9 9 0 0 1-9-8Z" fill="var(--surface)"/>'
+    + '<path d="M20 36h60l-7 40a9 9 0 0 1-9 8H36a9 9 0 0 1-9-8Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round" fill="none"/>'
+    + '<path d="M35 47l-1.5 30M50 47v30M65 47l1.5 30" stroke="currentColor" stroke-width="2.6" opacity=".2" stroke-linecap="round"/>'
+    + '<path d="M25.5 58h49" stroke="currentColor" stroke-width="2.6" opacity=".2" stroke-linecap="round"/>'
     + face + '</svg>';
 }
-var moods=[["hello","First run","Nothing saved yet"],["empty","Empty basket","Signed in, nothing in it"],["waiting","Cooling off","The answer is not yet"]];
+var moods=[["hello","First run","Nothing saved yet"],["empty","Empty","Waiting for something"],["waiting","Cooling off","The answer is not yet"],["bought","Bought well","Worth the wait"]];
 document.getElementById("moods").innerHTML=moods.map(function(m){
   return '<div class="cell">'+mascot(m[0],104)+'<div class="cap">'+m[1]+'</div><div class="lbl">'+m[2]+'</div></div>';
 }).join("");
 document.getElementById("sizes").innerHTML=[104,72,48,32,20].map(function(s){
-  return '<div style="text-align:center">'+mascot("hello",s)+'<div style="font-size:11px;margin-top:6px">'+s+'px</div></div>';
+  return '<div>'+mascot("hello",s)+'<span>'+s+'px</span></div>';
 }).join("");
 </script>
