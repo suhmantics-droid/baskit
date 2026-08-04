@@ -66,14 +66,33 @@ const logo = ({ w = 330, h = 505, x = 470, y = 195, box = 64 } = {}) => {
     background-position:-${Math.round(x * scale)}px -${Math.round(y * scale)}px"></span>`;
 };
 
-/** The mark alone, for the small square slots the full lockup would not suit. */
-const markOnly = (size, ink = "#122234") =>
-  `<svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none">
-    <path d="M22 8v34" stroke="${ink}" stroke-width="5.5" stroke-linecap="round"/>
-    <path d="M22 24a11 11 0 1 1 0 22" stroke="${ink}" stroke-width="5.5" stroke-linecap="round"/>
-    <path d="M14 42h36l-5 14a5 5 0 0 1-4.8 3.5H23.8A5 5 0 0 1 19 56Z" stroke="${ink}" stroke-width="5.5" stroke-linejoin="round" fill="none"/>
-    <path d="M27 49h10" stroke="#48b89a" stroke-width="5" stroke-linecap="round"/>
+/**
+ * The mark, with the basket's straight bar turned into a smile. Same b, same
+ * basket, same proportions as the supplied logo; the one bar it already has
+ * simply curves. Sagar's ask, and it costs the mark nothing.
+ */
+const markSmile = (size, ink = "#ffffff", accent = "#48b89a") =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 100 100" fill="none">
+    <path d="M35 10v48" stroke="${ink}" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="51" cy="43" r="16" stroke="${ink}" stroke-width="8"/>
+    <path d="M22 58h56l-7 26a8 8 0 0 1-7.7 6H36.7a8 8 0 0 1-7.7-6Z" stroke="${ink}" stroke-width="8" stroke-linejoin="round" fill="none"/>
+    <path d="M41 72q9 9 18 0" stroke="${accent}" stroke-width="7" stroke-linecap="round" fill="none"/>
   </svg>`;
+
+/** A pile of screenshots, the problem this whole thing exists for. */
+const shotPile = () => {
+  const shot = (x, y, rot, o) =>
+    `<g transform="translate(${x} ${y}) rotate(${rot})" opacity="${o}">
+      <rect width="128" height="212" rx="16" fill="#ffffff"/>
+      <rect x="12" y="14" width="104" height="118" rx="9" fill="#dfeee8"/>
+      <rect x="12" y="144" width="76" height="10" rx="5" fill="#c3d8d1"/>
+      <rect x="12" y="162" width="52" height="10" rx="5" fill="#d7e7e1"/>
+      <rect x="12" y="184" width="40" height="14" rx="7" fill="#48b89a"/>
+    </g>`;
+  return `<svg width="430" height="340" viewBox="0 0 430 340" fill="none">
+    ${shot(26, 96, -13, 0.55)}${shot(112, 74, -6, 0.78)}${shot(206, 60, 4, 0.92)}${shot(292, 78, 12, 1)}
+  </svg>`;
+};
 
 const stroke = (d, c = "#0f5f4b", w = 2.2) =>
   `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -86,15 +105,15 @@ html = html
   .replace("<!--FONTS-->", fonts)
   // On the cream ground the body is cream too, so the outline and face must be
   // the warm ink or they vanish into it. Learned the hard way at 300px.
-  .replaceAll("MASCOT_BIG", mascot("hello", 250, "#122234"))
-  .replaceAll("LOGO_SM", logo())
-  .replaceAll("LOGO_PUSH", markOnly(24, "#ffffff"))
-  .replaceAll("TICK_DK", tick("#2f9c7f"))
-  .replaceAll("ICON_LINK", stroke('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.5 5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12.5 19"/>', "#2f9c7f"))
-  .replaceAll("ICON_LIST", stroke('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.4"/><circle cx="3.5" cy="12" r="1.4"/><circle cx="3.5" cy="18" r="1.4"/>', "#2f9c7f"))
-  .replaceAll("ICON_WALLET", stroke('<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="17" cy="14.5" r="1.4"/>', "#2f9c7f"))
-  .replaceAll("ICON_TREND", stroke('<path d="M3 17l6-6 4 4 8-8"/><path d="M21 11V7h-4"/>', "#2f9c7f"))
-  .replaceAll("ICON_CLOCK", stroke('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', "#2f9c7f"));
+  .replaceAll("MARK_BIG", markSmile(230))
+  .replaceAll("SHOT_PILE", shotPile())
+  .replaceAll("LOGO_SM", markSmile(58))
+  .replaceAll("TICK_DK", tick("#17795e"))
+  .replaceAll("ICON_LINK", stroke('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.5 5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12.5 19"/>', "#17795e"))
+  .replaceAll("ICON_LIST", stroke('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.4"/><circle cx="3.5" cy="12" r="1.4"/><circle cx="3.5" cy="18" r="1.4"/>', "#17795e"))
+  .replaceAll("ICON_WALLET", stroke('<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="17" cy="14.5" r="1.4"/>', "#17795e"))
+  .replaceAll("ICON_TREND", stroke('<path d="M3 17l6-6 4 4 8-8"/><path d="M21 11V7h-4"/>', "#17795e"))
+  .replaceAll("ICON_CLOCK", stroke('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', "#17795e"));
 
 const built = `${root}marketing/carousel.built.html`;
 writeFileSync(built, html, "utf8");
