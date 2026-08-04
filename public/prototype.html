@@ -674,6 +674,59 @@
   // ---------- cloud backup (sync-lite): signed-in visitors keep their basket ----------
   var cloud={ user:null, announced:false, pushTimer:null };
   function countLocalItems(d){ var n=0; try{ var m=d&&d.items||{}; for(var k in m){ if(m[k]&&m[k].length) n+=m[k].length; } }catch(e){} return n; }
+  /**
+   * Union this device's basket with the cloud copy. Mirrors lib/merge-basket.ts
+   * (which carries the tests); kept inline because this page ships as one file.
+   *
+   * Replacing either side loses whatever the other side added. Setting up a
+   * profile on a new phone used to make the local copy "newer" than the cloud,
+   * so the cloud basket was never pulled down and the screen sat empty while
+   * the real items waited on the server. Union fixes that: an id on one side
+   * only always survives, and where both sides hold the same id the newer copy
+   * wins. A delete leaves a tombstone so it does not crawl back.
+   */
+  function recStamp(r,fallback){
+    var c=[r&&r.updated||0, r&&r.letGoAt||0, r&&r.boughtAt||0, r&&r.lastChecked||0,
+           (r&&r.priceHistory&&r.priceHistory.length)?(r.priceHistory[r.priceHistory.length-1].t||0):0,
+           r&&r.created||0];
+    var best=Math.max.apply(null,c); return best>0?best:fallback;
+  }
+  function mergeRows(a,b,aS,bS,buried){
+    var map={}, order=[];
+    function take(rows,side){ (rows||[]).forEach(function(r){ if(!r||typeof r.id!=="string") return;
+      var s=recStamp(r,side); if(!map[r.id]){ order.push(r.id); map[r.id]={row:r,stamp:s}; }
+      else if(s>map[r.id].stamp){ map[r.id]={row:r,stamp:s}; } }); }
+    take(a,aS); take(b,bS);
+    var out=[]; order.forEach(function(id){ var e=map[id]; if(!buried(id,e.stamp)) out.push(e.row); });
+    return out;
+  }
+  function mergeKeyed(a,b,aS,bS,buried){
+    var out={}, seen={};
+    [a||{},b||{}].forEach(function(src){ for(var k in src){ if(!seen[k]){ seen[k]=1;
+      out[k]=mergeRows((a||{})[k]||[], (b||{})[k]||[], aS, bS, buried); } } });
+    return out;
+  }
+  function mergeBaskets(local,remote){
+    var L=local||{}, R=remote||{};
+    var lS=(L.settings&&L.settings.lastSaved)||0, rS=(R.settings&&R.settings.lastSaved)||0;
+    var tombs={}, k;
+    for(k in ((R.settings&&R.settings.deleted)||{})) tombs[k]=R.settings.deleted[k];
+    for(k in ((L.settings&&L.settings.deleted)||{})) if(!(k in tombs)||L.settings.deleted[k]>tombs[k]) tombs[k]=L.settings.deleted[k];
+    function buried(id,stamp){ return typeof tombs[id]==="number" && tombs[id]>=stamp; }
+    var profiles=mergeRows(L.profiles||[], R.profiles||[], lS, rS, function(){ return false; });
+    var seen={}; for(k in ((R.settings&&R.settings.digestSeen)||{})) seen[k]=R.settings.digestSeen[k];
+    for(k in ((L.settings&&L.settings.digestSeen)||{})) seen[k]=L.settings.digestSeen[k];
+    var settings={}; for(k in (R.settings||{})) settings[k]=R.settings[k];
+    for(k in (L.settings||{})) settings[k]=L.settings[k];
+    settings.deleted=tombs; settings.digestSeen=seen; settings.lastSaved=Math.max(lS,rS);
+    var out={}; for(k in R) out[k]=R[k]; for(k in L) out[k]=L[k];
+    out.profiles=profiles;
+    out.current=L.current||R.current||(profiles[0]&&profiles[0].id)||null;
+    out.items=mergeKeyed(L.items,R.items,lS,rS,buried);
+    out.lists=mergeKeyed(L.lists,R.lists,lS,rS,buried);
+    out.settings=settings;
+    return out;
+  }
   function schedulePush(){ if(!cloud.user) return; clearTimeout(cloud.pushTimer); cloud.pushTimer=setTimeout(pushCloud,2000); }
   function pushCloud(){
     if(!cloud.user) return;
@@ -692,15 +745,23 @@
         return fetch("/api/backup",{credentials:"same-origin"}).then(function(r){ return r.json(); });
       }).then(function(b){
         var serverMs=b&&b.at?Date.parse(b.at):0;
-        var localMs=(db.settings&&db.settings.lastSaved)||0;
-        if(b&&b.db&&b.db.profiles&&(!db.profiles.length||serverMs>localMs)){
-          db=b.db; db.settings=db.settings||{}; db.settings.lastSaved=serverMs;
+        if(b&&b.db&&b.db.profiles){
+          // Union, never replace: whichever side has been away, nothing is lost.
+          var before=countLocalItems(db);
+          var remote=b.db; remote.settings=remote.settings||{};
+          if(!remote.settings.lastSaved) remote.settings.lastSaved=serverMs;
+          db=mergeBaskets(db, remote);
           store.set(DB_KEY, JSON.stringify(db));
           cloud.announced=true;
           if(db.profiles.length){ closeWrap("pWrap"); }
           render();
+          var gained=countLocalItems(db)-before;
           var rp=currentProfile();
-          toast((rp&&rp.name&&rp.name!=="Me"?("👋 Welcome back, "+rp.name+" , your basket is restored ✓"):"Basket restored from your account ✓"),3200);
+          if(gained>0){
+            toast((rp&&rp.name&&rp.name!=="Me"?("👋 Welcome back, "+rp.name+". "):"")+gained+" item"+(gained===1?"":"s")+" restored from your account ✓",3600);
+          }
+          // Local additions the cloud has not seen yet go up on the next save.
+          if(countLocalItems(db)>countLocalItems(remote)) schedulePush();
         } else if(db.profiles.length){
           // Never push an empty local basket over a populated cloud one: a slow
           // /api/backup response racing a fresh profile would otherwise wipe it.
