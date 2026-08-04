@@ -366,6 +366,22 @@
   .dig-row .amt { font-variant-numeric: tabular-nums; font-weight: 600; }
   .dig-row .amt.good { color: var(--good); }
   .dig-row .amt.bad { color: var(--bad); }
+  /* price watch: a ledger of what moved, biggest mover first */
+  .watch { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .wrow { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .wrow:last-child { border-bottom: none; }
+  .wrow:hover { background: var(--surface-2); }
+  .wmain { flex: 1; min-width: 0; }
+  .wnm { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .whow { font-size: 11.5px; color: var(--ink-faint); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wspark { flex: 0 0 auto; opacity: .8; }
+  .wnums { flex: 0 0 auto; text-align: right; min-width: 96px; }
+  .wnow { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .wdelta { font-size: 12px; font-variant-numeric: tabular-nums; margin-top: 2px; color: var(--ink-faint); }
+  .wdelta.down { color: var(--good); }
+  .wdelta.up { color: var(--bad); }
+  .wpct { opacity: .65; }
+  @media (max-width: 560px) { .wspark { display: none; } .wrow { padding: 12px 13px; gap: 10px; } .wnums { min-width: 84px; } }
   .buynow { display: grid; gap: 8px; }
   .bn-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--surface-2); transition: border-color .12s, transform .12s; }
   .bn-row:hover { border-color: var(--good); transform: translateX(2px); }
@@ -673,6 +689,50 @@
   }
   function save(){ db.settings.lastSaved=now(); store.set(DB_KEY, JSON.stringify(db)); schedulePush(); }
 
+  /**
+   * Price-drop notifications on this surface.
+   *
+   * The delivery machinery (VAPID keys, /api/push, the service worker's push and
+   * notificationclick handlers) has been working for weeks, but the only opt-in
+   * lived in the accounts app, which is not where anyone actually is. The result
+   * was a price engine running daily and reaching nobody. This is the button.
+   *
+   * Only offered to signed-in visitors: a subscription has to belong to an
+   * account for the nightly sweep to know where to send anything.
+   */
+  function pushOn(){ try{ return localStorage.getItem("baskit.push")==="1"; }catch(e){ return false; } }
+  function b64ToU8(b64){
+    var pad="=".repeat((4-(b64.length%4))%4);
+    var raw=atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/"));
+    var out=new Uint8Array(raw.length);
+    for(var i=0;i<raw.length;i++) out[i]=raw.charCodeAt(i);
+    return out;
+  }
+  function enablePush(){
+    if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){
+      toast("This browser cannot do notifications"); return;
+    }
+    toast("Asking your phone for permission…");
+    Notification.requestPermission().then(function(perm){
+      if(perm!=="granted"){ toast("Left off. You can turn it on any time from the menu."); return; }
+      return navigator.serviceWorker.register("/sw.js").then(function(){ return navigator.serviceWorker.ready; }).then(function(reg){
+        return fetch("/api/push").then(function(r){ return r.json(); }).then(function(j){
+          if(!j||!j.publicKey){ toast("Notifications are not switched on server-side yet"); return; }
+          return reg.pushManager.getSubscription().then(function(existing){
+            return existing||reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64ToU8(j.publicKey) });
+          }).then(function(sub){
+            return fetch("/api/push",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(sub.toJSON())})
+              .then(function(res){
+                if(!res.ok){ toast("Could not save that, try again"); return; }
+                try{ localStorage.setItem("baskit.push","1"); }catch(e){}
+                toast("Done. If a price drops, this device will tell you ✓",4000);
+              });
+          });
+        });
+      });
+    }).catch(function(){ toast("Could not turn notifications on"); });
+  }
+
   // ---------- cloud backup (sync-lite): signed-in visitors keep their basket ----------
   var cloud={ user:null, announced:false, pushTimer:null };
   /**
@@ -879,6 +939,7 @@
     } else {
       mi(m,'🔐 Sign in and keep your basket safe on any device',function(){ location.href="/api/auth/signin?callbackUrl=%2F"; });
     }
+    if(cloud.user) mi(m,(pushOn()?'🔔 Price drop alerts are on':'🔕 Tell me when a price drops'),function(){ enablePush(); });
     mi(m,'💷 My money: income, outgoings, what\'s left',function(){ openMoney(); });
     mi(m,'📋 Copy basket as text',function(){ copyAsText(null); });
     mi(m,'💬 Send feedback',function(){ sendFeedback(); });
@@ -896,6 +957,26 @@
   function daysBetween(a,b){ return Math.ceil((a-b)/86400000); }
   function statusLabel(s){ return s==="want"?"Want now":s==="later"?"Save for later":"Researching"; }
   function statusClass(s){ return s==="want"?"want":s==="later"?"later":"research"; }
+  /**
+   * Price watch rows: everything with a link, biggest mover first.
+   *
+   * A shopper reads a falling price as good news, so DOWN is green here. That is
+   * the opposite of a stock ticker and it is deliberate.
+   */
+  function watchRows(){
+    return items().filter(function(it){ return it.url&&!it.bought&&!it.letGo; }).map(function(it){
+      var now_=Number(latestPrice(it)), was=Number(firstPrice(it));
+      var delta=(isFinite(now_)&&isFinite(was))?(now_-was):0;
+      return { it:it, now:now_, was:was, delta:delta, pct:(was>0?(delta/was*100):0) };
+    }).sort(function(a,b){ return Math.abs(b.delta)-Math.abs(a.delta); });
+  }
+  /** Plain-English account of how and when a price was last read. */
+  function readNote(it){
+    if(!it.lastChecked) return "not checked yet";
+    var m=it.lastMethod;
+    var how=m==="stealth"?"deep check":(m==="jsonld"?"read from the shop":(m?"read from the shop":"checked"));
+    return how+" "+agoText(it.lastChecked);
+  }
   function latestPrice(it){ if(it.priceHistory&&it.priceHistory.length) return it.priceHistory[it.priceHistory.length-1].p; return it.price; }
   function firstPrice(it){ if(it.priceHistory&&it.priceHistory.length) return it.priceHistory[0].p; return it.price; }
 
@@ -1021,6 +1102,8 @@ function renderSidebar(){
     var html='<div class="side-h"><span>Segments &amp; groups</span><button class="side-add" id="newListBtn" title="New list">＋</button></div>';
     html+='<div class="side-item '+(filter.list==="all"?"active":"")+'" data-list="all"><div class="side-row"><span class="em">🧺</span><span class="nm">All items</span><span class="ct">'+items().length+'</span></div></div>';
     html+='<div class="side-item '+(filter.list==="__fav"?"active":"")+'" data-list="__fav"><div class="side-row"><span class="em" style="color:#e0426e">♥</span><span class="nm">Favourites</span><span class="ct">'+items().filter(function(i){return i.fav;}).length+'</span></div></div>';
+    var watchCount=items().filter(function(i){ return i.url&&!i.bought&&!i.letGo; }).length;
+    if(watchCount) html+='<div class="side-item '+(filter.list==="__watch"?"active":"")+'" data-list="__watch"><div class="side-row"><span class="em">📈</span><span class="nm">Price watch</span><span class="ct">'+watchCount+'</span></div></div>';
     var letGoCount=items().filter(function(i){return i.letGo;}).length;
     if(letGoCount) html+='<div class="side-item '+(filter.list==="__letgo"?"active":"")+'" data-list="__letgo"><div class="side-row"><span class="em">🕊</span><span class="nm">Let go</span><span class="ct">'+letGoCount+'</span></div></div>';
     html+='<div class="side-item '+(filter.list==="__bought"?"active":"")+'" data-list="__bought"><div class="side-row"><span class="em">🧾</span><span class="nm">Purchases</span><span class="ct">'+items().filter(function(i){return i.bought;}).length+'</span></div></div>';
@@ -1054,6 +1137,19 @@ function renderSidebar(){
       $("listHeader").innerHTML='<div class="lhead"><div class="crumb"><a data-go="all">All items</a> <span>›</span> <span>Favourites</span></div><div class="lt"><h1><span style="color:#e0426e">♥</span> Favourites</h1><div class="lacts"><button class="btn sm" id="lhAdd">＋ Add item</button></div></div><div class="budget-wrap"><div class="budget-nums"><div class="bn"><div class="k">Items</div><div class="v">'+favs.length+'</div></div><div class="bn"><div class="k">Total value</div><div class="v">'+money(favTotal)+'</div></div></div><div class="hint">Tap the ♡ on any card to keep it here. Favourites get a small boost in their decision score.</div></div></div>';
       Array.prototype.forEach.call($("listHeader").querySelectorAll("[data-go]"),function(a){ a.onclick=function(){ selectList(a.getAttribute("data-go")); }; });
       $("lhAdd").onclick=function(){ openAdd(); };
+      return;
+    }
+    if(filter.list==="__watch"){
+      var tracked=watchRows();
+      var movers=tracked.filter(function(r){ return r.delta!==0; }).length;
+      var down=tracked.filter(function(r){ return r.delta<0; }).length;
+      $("listHeader").innerHTML='<div class="lhead"><div class="crumb"><a data-go="all">All items</a> <span>›</span> <span>Price watch</span></div>'
+        +'<div class="lt"><h1><span>📈</span> Price watch</h1><div class="lacts">'
+        +(down?'<span class="savedpill">↓ '+down+' cheaper than when you saved</span>':'')
+        +'<button class="btn ghost sm" id="watchRefresh">↻ Check all now</button></div></div>'
+        +'<div class="lsub">'+tracked.length+' item'+(tracked.length===1?"":"s")+' with a link'+(movers?', '+movers+' moved since you saved':', none have moved yet')+'</div></div>';
+      Array.prototype.forEach.call($("listHeader").querySelectorAll("[data-go]"),function(a){ a.onclick=function(){ selectList(a.getAttribute("data-go")); }; });
+      var wr=$("watchRefresh"); if(wr) wr.onclick=function(){ refreshDuePrices(true); };
       return;
     }
     if(filter.list==="__letgo"){
@@ -1481,8 +1577,56 @@ function renderSidebar(){
     return list;
   }
 
+  /**
+   * The price watch list. Every tracked item, biggest mover first, each row
+   * saying plainly what it costs now, what it cost when you saved it, and how
+   * recently we looked. The "how" matters: a shop that needs a deep check is
+   * slow for a reason, and saying so stops it reading as broken.
+   */
+  function renderWatch(wrap){
+    var rows=watchRows();
+    if(!rows.length){
+      wrap.innerHTML='<div class="empty"><div class="ic">'+mascot("empty",92)+'</div><h3>Nothing to watch yet</h3>'
+        +'<p>Save something with a link and Baskit will keep an eye on the price for you.</p>'
+        +'<div style="margin-top:16px"><button class="btn" id="watchAdd">Add an item</button></div></div>';
+      var wa=$("watchAdd"); if(wa) wa.onclick=function(){ openAdd(); };
+      return;
+    }
+    wrap.innerHTML='<div class="watch">'+rows.map(function(r){
+      var it=r.it, moved=r.delta!==0;
+      var dir=r.delta<0?"down":(r.delta>0?"up":"flat");
+      var amt=moved?((r.delta<0?"↓ ":"↑ ")+money(Math.abs(r.delta),it.cur)):"no change";
+      var pct=moved?(Math.abs(r.pct).toFixed(Math.abs(r.pct)<10?1:0)+"%"):"";
+      var spark=(it.priceHistory&&it.priceHistory.length>1)?miniSpark(it.priceHistory,r.delta<0):"";
+      return '<div class="wrow" data-open="'+it.id+'">'
+        +'<div class="wmain"><div class="wnm">'+esc(it.name)+'</div>'
+        +'<div class="whow">'+esc(readNote(it))+(it.url?' · '+esc(domainOf(it.url)):"")+'</div></div>'
+        +'<div class="wspark">'+spark+'</div>'
+        +'<div class="wnums"><div class="wnow">'+money(r.now,it.cur)+'</div>'
+        +'<div class="wdelta '+dir+'">'+amt+(pct?' <span class="wpct">'+pct+'</span>':'')+'</div></div>'
+        +'</div>';
+    }).join("")+'</div>';
+    Array.prototype.forEach.call(wrap.querySelectorAll("[data-open]"),function(el){
+      el.onclick=function(){ openDetail(el.getAttribute("data-open")); };
+    });
+  }
+  /** Tiny inline trend line, green when the line ends lower than it started. */
+  function miniSpark(ph,good){
+    var w=64,h=22,pad=2,ps=ph.map(function(x){ return Number(x.p); });
+    var mn=Math.min.apply(null,ps), mx=Math.max.apply(null,ps); if(mx===mn) mx=mn+1;
+    var pts=ps.map(function(p,i){
+      var x=pad+(i/(ps.length-1))*(w-pad*2);
+      var y=h-pad-((p-mn)/(mx-mn))*(h-pad*2);
+      return x.toFixed(1)+","+y.toFixed(1);
+    }).join(" ");
+    return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" fill="none" aria-hidden="true">'
+      +'<polyline points="'+pts+'" stroke="'+(good?"var(--good)":"var(--ink-faint)")+'" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  }
+  function domainOf(u){ try{ return String(u).split("/")[2].replace(/^www\./,""); }catch(e){ return ""; } }
+
   function renderGrid(){
     var list=visibleItems(), wrap=$("gridWrap");
+    if(filter.list==="__watch"){ renderWatch(wrap); return; }
     if(items().length===0){
       var _pn=(currentProfile()&&currentProfile().name&&currentProfile().name!=="Me")?currentProfile().name:null;
       // An empty basket while signed in is the confusing case: it looks like
@@ -1654,7 +1798,7 @@ function renderSidebar(){
   var lastFetchSlow=false;
   // 32s: blocked stores (Argos, Currys, John Lewis, Boots) go through the
   // stealth path server-side, which is slower than a plain fetch but works.
-  function fetchOwn(url){ lastFetchSlow=false; var ctrl; try{ctrl=new AbortController();}catch(e){} var to=setTimeout(function(){ if(ctrl)ctrl.abort(); },32000); return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:url}),signal:ctrl?ctrl.signal:undefined}).then(function(r){ if(!r.ok) throw new Error("http"+r.status); return r.json(); }).then(function(j){ clearTimeout(to); if(j&&j.slow) lastFetchSlow=true; if(!j||!j.ok||!j.extracted) throw new Error("noread"); var ex=j.extracted; return { title:ex.name||"", img:ex.imageUrl||"", price:(ex.priceMinor!=null?ex.priceMinor/100:null), cur:ISO_SYM[ex.currency]||null, stock:ex.availability||null, confident:ex.confidence!=="low", description:"" }; }); }
+  function fetchOwn(url){ lastFetchSlow=false; var ctrl; try{ctrl=new AbortController();}catch(e){} var to=setTimeout(function(){ if(ctrl)ctrl.abort(); },32000); return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:url}),signal:ctrl?ctrl.signal:undefined}).then(function(r){ if(!r.ok) throw new Error("http"+r.status); return r.json(); }).then(function(j){ clearTimeout(to); if(j&&j.slow) lastFetchSlow=true; if(!j||!j.ok||!j.extracted) throw new Error("noread"); var ex=j.extracted; return { title:ex.name||"", img:ex.imageUrl||"", price:(ex.priceMinor!=null?ex.priceMinor/100:null), cur:ISO_SYM[ex.currency]||null, stock:ex.availability||null, confident:ex.confidence!=="low", description:"", method:(j.note==="via stealth"?"stealth":(ex.method||"read")) }; }); }
   function fetchMicrolink(url){ var ctrl; try{ctrl=new AbortController();}catch(e){} var to=setTimeout(function(){ if(ctrl)ctrl.abort(); },7000); return fetch("https://api.microlink.io/?meta=true&url="+encodeURIComponent(url), ctrl?{signal:ctrl.signal}:{}).then(function(r){ return r.json(); }).then(function(j){ clearTimeout(to); if(!j||j.status!=="success"||!j.data) throw new Error("nodata"); var dt=j.data; return { title:dt.title||"", img:(dt.image&&dt.image.url)||(dt.logo&&dt.logo.url)||"", price:extractPrice(dt), cur:null, stock:null, confident:false, description:dt.description||"" }; }); }
   function fetchMeta(url){ return fetchOwn(url).catch(function(){ return fetchMicrolink(url); }); }
 
@@ -1734,7 +1878,7 @@ function renderSidebar(){
       } else { done(m.price, m.cur||null, ""); }
     }).catch(function(){ clearTimeout(slowHint); btn.innerHTML="Fetch"; btn.disabled=false; toast(lastFetchSlow?"That store is slow to answer, type the price in and it still tracks":"Couldn't read that link, add the details and it still works"); }); };
 
-  function checkItemPrice(it){ if(!it.url) return Promise.resolve({ok:false,reason:"no link"}); return fetchMeta(it.url).then(function(m){ it.lastChecked=now(); if(m.price!=null){ var old=latestPrice(it); if(old==null){ it.price=m.price; it.priceHistory=[{t:now(),p:m.price}]; return {ok:true,changed:true,old:null,nw:m.price}; } if(Number(m.price)!==Number(old)){ logPrice(it,m.price); return {ok:true,changed:true,old:Number(old),nw:m.price}; } return {ok:true,changed:false,nw:m.price}; } return {ok:false,reason:"no price"}; }).catch(function(){ it.lastChecked=now(); return {ok:false,reason:"unreachable"}; }); }
+  function checkItemPrice(it){ if(!it.url) return Promise.resolve({ok:false,reason:"no link"}); return fetchMeta(it.url).then(function(m){ it.lastChecked=now(); it.lastMethod=m.method||null; if(m.price!=null){ var old=latestPrice(it); if(old==null){ it.price=m.price; it.priceHistory=[{t:now(),p:m.price}]; return {ok:true,changed:true,old:null,nw:m.price}; } if(Number(m.price)!==Number(old)){ logPrice(it,m.price); return {ok:true,changed:true,old:Number(old),nw:m.price}; } return {ok:true,changed:false,nw:m.price}; } return {ok:false,reason:"no price"}; }).catch(function(){ it.lastChecked=now(); return {ok:false,reason:"unreachable"}; }); }
 
   function refreshDuePrices(force){ var due=items().filter(function(it){ return it.url&&(force||!it.lastChecked||daysBetween(now(),it.lastChecked)>=7); }); if(!due.length){ toast("Prices were all checked in the last week"); return; } var CAP=15,capped=due.length>CAP; due=due.slice(0,CAP); toast("Checking "+due.length+" price"+(due.length>1?"s":"")+"…"); var changed=0,i=0; (function step(){ if(i>=due.length){ save(); render(); toast(changed?(changed+" price change"+(changed===1?"":"s")+" found"):("No price changes"+(capped?" (first "+CAP+" checked)":""))); return; } checkItemPrice(due[i]).then(function(r){ if(r.changed) changed++; i++; setTimeout(step,350); }); })(); }
 
