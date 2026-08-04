@@ -11,6 +11,10 @@ drifted from them and should be brought back over time.
 | Primary mint | `#2DBF9E` | 45, 191, 158 | 3252 C |
 | White | `#FFFFFF` | 255, 255, 255 | |
 
+Two supporting neutrals, added 4 Aug from a web mockup that extended the pack
+sensibly: `#E6F7F2` mint tint for icon plates and quiet panels, and `#F5F7FA`
+cool grey for page grounds and card separation.
+
 There is no other green. Deep pine and forest greens are off-brand.
 
 Mint carries navy type well (about 7:1) but not white (about 2.2:1), so on a
