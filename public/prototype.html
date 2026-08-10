@@ -197,6 +197,8 @@
   .card .name { font-weight: 600; letter-spacing: -.01em; font-size: 15px; }
   .card .price { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
   .card .price .was { display: block; font-weight: 400; font-size: 11.5px; color: var(--ink-faint); text-decoration: line-through; }
+  /* What the item costs in your base currency, so the card and the total agree. */
+  .card .price .approx { display: block; font-weight: 500; font-size: 11.5px; color: var(--ink-faint); letter-spacing: .1px; }
   .card .meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--ink-soft); }
   .tag { font-size: 11.5px; color: var(--ink-soft); background: var(--surface-2); border: 1px solid var(--line); padding: 2px 8px; border-radius: 999px; }
   .tag.cat { border-color: var(--line-strong); color: var(--ink); }
@@ -926,6 +928,99 @@
   var editingId=null, segStatus="want", detailId=null, pickSel={}, editingList=null;
   var CUR="£";
 
+  /**
+   * Currency.
+   *
+   * An item keeps the currency it was saved in, because that is what you will
+   * actually pay. Only *totals* get restated in your base currency (CUR).
+   *
+   * The bug this fixes: every total used to sum raw numbers across currencies,
+   * so an item saved at ₹6,000 added 6000 to the pot and came back out wearing a
+   * pound sign. Rates come from /api/fx (ECB, free, keyless) as one table per
+   * day, cached in the DB so a reload still works offline on yesterday's numbers.
+   */
+  // Symbol maps live once, at SYM_ISO/ISO_SYM further down. A second copy here
+  // would be a drift waiting to happen.
+  var FX_TTL=86400000, FX_RETRY=60000;
+  var fxPending=false, fxFailedAt=0;
+
+  function iso(c){ if(!c) return "GBP"; var t=String(c).trim(); return SYM_ISO[t]||t.toUpperCase(); }
+  function symOf(c){ var k=iso(c); return ISO_SYM[k]||(k+" "); }
+  function fxTable(){ return (db.settings&&db.settings.fx)||null; }
+
+  /**
+   * Units of `to` per 1 unit of `from`, synchronously, off the cached table.
+   * Deliberately NOT called fxRate — that name is taken further down by the
+   * promise-returning single-pair lookup the add form uses, and the later
+   * declaration wins. Multiplying a price by a Promise gives NaN, which is
+   * exactly what happened the first time round.
+   */
+  function rateOf(from,to){
+    var a=iso(from), b=iso(to);
+    if(a===b) return 1;
+    var t=fxTable(); if(!t||!t.rates) return null;
+    var base=iso(t.base);
+    function per(c){ if(c===base) return 1; var r=t.rates[c]; return (typeof r==="number"&&r>0&&isFinite(r))?r:null; }
+    var f=per(a), g=per(b);
+    return (f==null||g==null)?null:(g/f);
+  }
+
+  /** A value in `cur`, restated in the base currency. null when unconvertible. */
+  function toBase(v,cur){
+    if(v==null||v==="") return null;
+    var n=Number(v); if(isNaN(n)) return null;
+    var r=rateOf(cur||CUR,CUR);
+    return r==null?null:n*r;
+  }
+  /** An item's latest price in the base currency. */
+  function basePrice(it){ return toBase(latestPrice(it),it.cur); }
+
+  /**
+   * Sum a list in the base currency, keeping a per-currency tally of whatever
+   * would not convert so a partial total never pretends to be whole.
+   */
+  function sumBase(list,valueOf){
+    var total=0, stuck={};
+    (list||[]).forEach(function(x){
+      var raw=valueOf?valueOf(x):latestPrice(x);
+      if(raw==null||raw==="") return;
+      var n=Number(raw); if(isNaN(n)) return;
+      var c=iso(x.cur||CUR), v=toBase(n,c);
+      if(v==null) stuck[c]=(stuck[c]||0)+n; else total+=v;
+    });
+    return { total:total, stuck:stuck, complete:!Object.keys(stuck).length };
+  }
+  /** " + ₹6,000 not converted" — shown rather than silently dropped. */
+  function stuckNote(s){
+    var ks=Object.keys((s&&s.stuck)||{}); if(!ks.length) return "";
+    return " + "+ks.map(function(c){ return money(s.stuck[c],symOf(c)); }).join(" + ")+" not converted";
+  }
+  /** The "≈ £56" line under a card whose own currency is not your base. */
+  function approxLine(it){
+    if(iso(it.cur||CUR)===iso(CUR)) return "";
+    var v=basePrice(it);
+    return v==null?"":'<span class="approx">≈ '+money(Math.round(v*100)/100)+'</span>';
+  }
+
+  /** Fetch the rate table when we have none or it has gone stale. Non-blocking. */
+  function ensureRates(){
+    if(fxPending || (now()-fxFailedAt)<FX_RETRY) return;
+    // Any base converts to any other via cross rates, so switching your base
+    // currency does not need a new table — only age does.
+    var t=fxTable(), base=iso(CUR);
+    if(t && (now()-(t.at||0))<FX_TTL) return;
+    fxPending=true;
+    fetch("/api/fx?from="+encodeURIComponent(base))
+      .then(function(r){ return r.ok?r.json():null; })
+      .then(function(j){
+        fxPending=false;
+        if(!j||!j.rates){ fxFailedAt=now(); return; }
+        db.settings.fx={ base:j.base||base, rates:j.rates, at:now() };
+        save(); render();
+      })
+      .catch(function(){ fxPending=false; fxFailedAt=now(); });
+  }
+
   // theme
   function applyTheme(t){ document.documentElement.setAttribute("data-theme",t); db.settings.theme=t; save(); render(); }
   (function(){ var t=db.settings.theme; if(!t){ try{ t=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"; }catch(e){ t="light"; } } document.documentElement.setAttribute("data-theme",t); })();
@@ -1063,6 +1158,8 @@
   }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function money(v,cur){ if(v==null||v==="") return "–"; var n=Number(v); return (cur||CUR)+n.toLocaleString(undefined,{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2}); }
+  /** Converted totals land on long decimals; money() should never print £56.0747. */
+  function round2(v){ return v==null?v:Math.round(Number(v)*100)/100; }
   function daysBetween(a,b){ return Math.ceil((a-b)/86400000); }
   function statusLabel(s){ return s==="want"?"Want now":s==="later"?"Save for later":"Researching"; }
   function statusClass(s){ return s==="want"?"want":s==="later"?"later":"research"; }
@@ -1100,8 +1197,8 @@
   }
   function itemsInSubtree(id){ var set={}; subtreeIds(id).forEach(function(x){ set[x]=1; }); return items().filter(function(it){ return (it.lists||[]).some(function(l){ return set[l]; }); }); }
   function itemsDirectlyIn(id){ return items().filter(function(it){ return (it.lists||[]).indexOf(id)>-1; }); }
-  function listSpent(id){ return itemsInSubtree(id).reduce(function(s,it){ return s+(Number(latestPrice(it))||0); },0); }
-  function listBought(id){ return itemsInSubtree(id).filter(function(it){return it.bought;}).reduce(function(s,it){ return s+(Number(latestPrice(it))||0); },0); }
+  function listSpent(id){ return sumBase(itemsInSubtree(id)).total; }
+  function listBought(id){ return sumBase(itemsInSubtree(id).filter(function(it){return it.bought;})).total; }
   function capState(spent,cap){ if(!cap) return "none"; var r=spent/cap; return r>1?"cap-over":(r>=0.9?"cap-warn":"cap-ok"); }
   function palette(){ var d=document.documentElement.getAttribute("data-theme")==="dark"; return d?["#3987e5","#008300","#d55181","#c98500","#199e70","#d95926","#9085e9","#e66767"]:["#2a78d6","#008300","#e87ba4","#eda100","#1baf7a","#eb6834","#4a3aa7","#e34948"]; }
 
@@ -1137,6 +1234,7 @@
   function render(){
     ensureProfile(); if(!db.current) return;
     var p=currentProfile(); CUR=p.cur||"£";
+    ensureRates();
     paintAvatar($("avatarBtn"),p);
     $("greeting").textContent=(p.name&&p.name!=="Me")?(p.name+"’s basket"):"Your basket";
     renderSidebar(); renderMainHeader(); renderSaveBar(); renderOccasions(); renderDigest(); renderHomeSwitch(); renderStatusChips(); renderCatFilter(); renderPlan(); renderSegDash(); renderSublists(); renderGrid();renderListPickerData(); renderSalesBanner();
@@ -1239,7 +1337,7 @@ function renderSidebar(){
     $("heroDefault").style.display="none"; $("statsWrap").style.display="none";
     if(filter.list==="__fav"){
       var favs=items().filter(function(i){ return i.fav; });
-      var favTotal=favs.reduce(function(s,i){ return s+(Number(latestPrice(i))||0); },0);
+      var favTotal=sumBase(favs).total;
       $("listHeader").innerHTML='<div class="lhead"><div class="crumb"><a data-go="all">All items</a> <span>›</span> <span>Favourites</span></div><div class="lt"><h1><span style="color:#e0426e">♥</span> Favourites</h1><div class="lacts"><button class="btn sm" id="lhAdd">＋ Add item</button></div></div><div class="budget-wrap"><div class="budget-nums"><div class="bn"><div class="k">Items</div><div class="v">'+favs.length+'</div></div><div class="bn"><div class="k">Total value</div><div class="v">'+money(favTotal)+'</div></div></div><div class="hint">Tap the ♡ on any card to keep it here. Favourites get a small boost in their decision score.</div></div></div>';
       Array.prototype.forEach.call($("listHeader").querySelectorAll("[data-go]"),function(a){ a.onclick=function(){ selectList(a.getAttribute("data-go")); }; });
       $("lhAdd").onclick=function(){ openAdd(); };
@@ -1267,9 +1365,9 @@ function renderSidebar(){
     }
     if(filter.list==="__bought"){
       var bought=items().filter(function(i){ return i.bought; });
-      var totalSpent=bought.reduce(function(s,i){ return s+(Number(latestPrice(i))||0); },0);
+      var totalSpent=sumBase(bought).total;
       var curKeyB=monthKeyOf(now());
-      var monthSpent=bought.filter(function(i){ return i.boughtAt&&monthKeyOf(i.boughtAt)===curKeyB; }).reduce(function(s,i){ return s+(Number(latestPrice(i))||0); },0);
+      var monthSpent=sumBase(bought.filter(function(i){ return i.boughtAt&&monthKeyOf(i.boughtAt)===curKeyB; })).total;
       var saved=bought.reduce(function(s,i){ return s+savedByWaiting(i); },0);
       $("listHeader").innerHTML='<div class="lhead"><div class="crumb"><a data-go="all">All items</a> <span>›</span> <span>Purchases</span></div><div class="lt"><h1><span>🧾</span> Purchases</h1><div class="lacts">'+(saved>0?'<span class="savedpill">↓ '+money(saved)+' saved by waiting</span>':"")+'</div></div><div class="budget-wrap"><div class="budget-nums"><div class="bn"><div class="k">Bought</div><div class="v">'+bought.length+'</div></div><div class="bn"><div class="k">Total spent</div><div class="v">'+money(totalSpent)+'</div></div><div class="bn"><div class="k">This month</div><div class="v">'+money(monthSpent)+'</div></div></div><div class="hint">Your record. Prices are what each item cost when you marked it bought; the saving is how far below the first-seen price you got it.</div></div></div>';
       Array.prototype.forEach.call($("listHeader").querySelectorAll("[data-go]"),function(a){ a.onclick=function(){ selectList(a.getAttribute("data-go")); }; });
@@ -1313,9 +1411,10 @@ function renderSidebar(){
     var buckets=kids.map(function(c){ var set={}; subtreeIds(c.id).forEach(function(x){set[x]=1;}); return {name:c.name, ids:set, val:0}; });
     var directVal=0;
     itemsInSubtree(l.id).forEach(function(it){
+      var v=basePrice(it)||0; // base currency, or the bar mixes rupees into pounds
       var placed=false;
-      for(var i=0;i<buckets.length;i++){ if((it.lists||[]).some(function(x){return buckets[i].ids[x];})){ buckets[i].val+=Number(latestPrice(it))||0; placed=true; break; } }
-      if(!placed) directVal+=Number(latestPrice(it))||0;
+      for(var i=0;i<buckets.length;i++){ if((it.lists||[]).some(function(x){return buckets[i].ids[x];})){ buckets[i].val+=v; placed=true; break; } }
+      if(!placed) directVal+=v;
     });
     var segs=buckets.filter(function(b){return b.val>0;});
     if(directVal>0) segs.push({name:"Items here", val:directVal});
@@ -1335,14 +1434,14 @@ function renderSidebar(){
 
   function renderStats(){
     var all=items();
-    var total=all.reduce(function(s,i){ return s+(Number(latestPrice(i))||0); },0);
+    var totalS=sumBase(all);
     var ready=all.filter(function(i){ return i.cooldownDays>0&&i.waitUntil&&daysBetween(i.waitUntil,now())<=0; }).length;
     var drops=all.filter(function(i){ return firstPrice(i)-latestPrice(i)>0; }).length;
     var capped=lists().filter(function(l){return l.cap;});
     var over=capped.filter(function(l){return listSpent(l.id)>l.cap;}).length;
     $("stats").innerHTML=
       stat(mascot("hungry",26),"Items saved",all.length,"in "+lists().length+" lists")+
-      stat("💷","Total value",money(total),"across your basket")+
+      stat("💷","Total value",money(round2(totalS.total)),"across your basket"+stuckNote(totalS))+
       stat("⏳","Ready to decide",ready,ready?"cool-off finished":"none waiting")+
       stat("🚦","Lists over cap",over,capped.length?(over?"trim these":"all within budget"):"no caps set");
   }
@@ -1471,8 +1570,8 @@ function renderSidebar(){
    * at a lower price saves the difference, but walking away saves the whole
    * thing. Cool-off timers only mean something if the "no" is worth counting.
    */
-  function avoidedByLettingGo(){ return items().filter(function(i){ return i.letGo; }).reduce(function(s,i){ return s+(Number(i.letGoPrice)||0); },0); }
-  function savedTotal(){ return items().filter(function(i){ return i.bought; }).reduce(function(s,i){ return s+savedByWaiting(i); },0)+avoidedByLettingGo(); }
+  function avoidedByLettingGo(){ return sumBase(items().filter(function(i){ return i.letGo; }),function(i){ return i.letGoPrice; }).total; }
+  function savedTotal(){ return sumBase(items().filter(function(i){ return i.bought; }),savedByWaiting).total+avoidedByLettingGo(); }
   function letGoItem(id){
     var it=items().filter(function(i){ return i.id===id; })[0]; if(!it) return;
     it.letGo=true; it.letGoAt=now(); it.letGoPrice=latestPrice(it); it.waitUntil=null; it.cooldownDays=0;
@@ -1568,8 +1667,8 @@ function renderSidebar(){
     if(filter.list!=="all"||!db.current||!items().length){ w.innerHTML=""; return; }
     if((db.settings.homeView||"items")!=="plan"){ w.innerHTML=""; return; } // Items view goes straight to the grid
     var p=currentProfile(); var budget=Number(p.budget)||0; var curKey=monthKeyOf(now());
-    var spentMonth=items().filter(function(it){ return it.bought&&it.boughtAt&&monthKeyOf(it.boughtAt)===curKey; }).reduce(function(s,it){ return s+(Number(latestPrice(it))||0); },0);
-    var committed=items().filter(function(it){ return !it.bought&&it.status==="want"; }).reduce(function(s,it){ return s+(Number(latestPrice(it))||0); },0);
+    var spentMonth=sumBase(items().filter(function(it){ return it.bought&&it.boughtAt&&monthKeyOf(it.boughtAt)===curKey; })).total;
+    var committed=sumBase(items().filter(function(it){ return !it.bought&&it.status==="want"; })).total;
     var monthName=MONTHS[new Date(now()).getMonth()];
     // budget bar: spent (solid) + planned (striped) against the budget mark
     var barHtml="";
@@ -1609,14 +1708,14 @@ function renderSidebar(){
     var view=db.settings.spendView||"seg";
     var segs, total;
     if(view==="cat"){
-      var cats={}; items().forEach(function(it){ var c=it.cat||"Uncategorised"; cats[c]=cats[c]||{val:0,cnt:0}; cats[c].val+=Number(latestPrice(it))||0; cats[c].cnt++; });
+      var cats={}; items().forEach(function(it){ var c=it.cat||"Uncategorised"; cats[c]=cats[c]||{val:0,cnt:0}; cats[c].val+=basePrice(it)||0; cats[c].cnt++; });
       segs=Object.keys(cats).sort(function(a,b){ return cats[b].val-cats[a].val; }).map(function(c,i){ return { id:"cat:"+c, name:c, emoji:catGlyph(c), val:cats[c].val, col:pal[i%pal.length] }; });
       total=segs.reduce(function(s,x){ return s+x.val; },0);
     } else {
       segs=roots.map(function(l,i){ return { id:l.id, name:l.name, emoji:l.emoji||"🗂", val:listSpent(l.id), cnt:itemsInSubtree(l.id).length, kids:childrenOf(l.id).length, cap:l.cap, col:pal[i%pal.length] }; });
       var inAny={}; roots.forEach(function(l){ subtreeIds(l.id).forEach(function(x){ inAny[x]=1; }); });
       var un=items().filter(function(it){ return !(it.lists||[]).some(function(x){ return inAny[x]; }); });
-      var unVal=un.reduce(function(s,it){ return s+(Number(latestPrice(it))||0); },0);
+      var unVal=sumBase(un).total;
       total=segs.reduce(function(s,x){ return s+x.val; },0)+unVal;
       if(unVal>0) segs=segs.concat([{id:"__un",name:"Unsorted",emoji:"🧺",val:unVal,col:"var(--ink-faint)"}]);
     }
@@ -1768,7 +1867,9 @@ function renderSidebar(){
     var price=latestPrice(it), was=firstPrice(it);
     var moved=(was!=null&&price!=null&&Number(was)!==Number(price));
     var cheaper=moved&&Number(price)<Number(was);
-    var priceHtml='<span style="'+(moved?('color:'+(cheaper?'var(--good)':'var(--bad)')):'')+'">'+money(price,it.cur)+'</span>'+(moved?'<span class="was">'+money(was,it.cur)+'</span>':'');
+    // The card always shows what you will actually pay, in the currency you saved
+    // it in. The base-currency figure sits underneath so the total still adds up.
+    var priceHtml='<span style="'+(moved?('color:'+(cheaper?'var(--good)':'var(--bad)')):'')+'">'+money(price,it.cur)+'</span>'+(moved?'<span class="was">'+money(was,it.cur)+'</span>':'')+approxLine(it);
     var dropHtml=moved?(cheaper?'<span class="drop">↓ '+money(was-price,it.cur)+' since saved</span>':'<span class="drop" style="color:var(--bad)">↑ '+money(price-was,it.cur)+' since saved</span>'):'';
     var targetHtml=(it.targetPrice&&price<=it.targetPrice)?'<span class="target-hit">✓ at target</span>':'';
     var codeHtml=it.code?'<button class="code" data-copy="'+it.id+'">🎟 '+esc(it.code)+' <span style="opacity:.5">copy</span></button>':'';
@@ -2205,7 +2306,7 @@ function renderSidebar(){
     if(!scope.length){ toast("Nothing to copy yet"); return; }
     var lines=[title];
     scope.forEach(function(it){ if(it.bought) return; lines.push("• "+it.name+": "+money(latestPrice(it),it.cur)); });
-    var total=scope.filter(function(i){return !i.bought;}).reduce(function(s,i){ return s+(Number(latestPrice(i))||0); },0);
+    var total=sumBase(scope.filter(function(i){return !i.bought;})).total;
     lines.push("Total: "+money(total));
     lines.push("Made with baskit.suhmantics.com");
     var text=lines.join("\n");

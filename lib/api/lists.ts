@@ -80,12 +80,15 @@ export function toBudgetItem(row: {
   id: string;
   price: number | null;
   bought: boolean;
+  currency?: string | null;
   lists: { listId: string }[];
 }): DomainItem {
   return {
     id: row.id,
     name: "",
-    currency: "GBP",
+    // Must come from the row: hardcoding GBP here made every roll-up add rupees
+    // to pounds as if they were the same unit. See lib/fx.ts.
+    currency: row.currency ?? "GBP",
     price: row.price,
     stock: "unknown",
     tags: [],

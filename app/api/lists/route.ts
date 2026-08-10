@@ -9,19 +9,37 @@ import { prisma } from "@/lib/db";
 import { requireUser, UnauthorizedError, unauthorizedResponse } from "@/lib/session";
 import { listCreateSchema, toBudgetItem, toDomainList } from "@/lib/api/lists";
 import { capState, childCapsAllocated, itemsInSubtree, listBought, listSpent } from "@/lib/budget";
+import { itemsInBase } from "@/lib/fx";
+import { getRates } from "@/lib/fx-server";
 
 export async function GET() {
   try {
     const { id: userId } = await requireUser();
-    const [listRows, itemRows] = await Promise.all([
+    const [listRows, itemRows, me] = await Promise.all([
       prisma.list.findMany({ where: { ownerId: userId }, orderBy: { createdAt: "asc" } }),
       prisma.item.findMany({
         where: { userId },
-        select: { id: true, price: true, bought: true, lists: { select: { listId: true } } },
+        select: {
+          id: true,
+          price: true,
+          bought: true,
+          currency: true,
+          lists: { select: { listId: true } },
+        },
       }),
+      prisma.user.findUnique({ where: { id: userId }, select: { currency: true } }),
     ]);
     const lists = listRows.map(toDomainList);
-    const items = itemRows.map(toBudgetItem);
+    const base = me?.currency ?? "GBP";
+
+    // Caps and spend are only meaningful in one currency. Items keep their own;
+    // the roll-up sees them restated in the user's base. Anything with no rate is
+    // reported rather than counted wrong.
+    const raw = itemRows.map(toBudgetItem);
+    const needsFx = raw.some((it) => (it.currency ?? base) !== base);
+    const rates = needsFx ? await getRates(base) : null;
+    const { items, unconverted } = itemsInBase(raw, base, rates);
+
     const nodes = listRows.map((row) => {
       const spent = listSpent(lists, items, row.id);
       return {
@@ -40,7 +58,7 @@ export async function GET() {
         childCapsAllocated: childCapsAllocated(lists, row.id),
       };
     });
-    return Response.json({ lists: nodes });
+    return Response.json({ lists: nodes, currency: base, unconverted });
   } catch (e) {
     if (e instanceof UnauthorizedError) return unauthorizedResponse();
     throw e;
