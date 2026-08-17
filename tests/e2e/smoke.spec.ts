@@ -41,6 +41,42 @@ test.describe("prototype (tester surface)", () => {
     await expect(page.locator("#listHeader")).toContainText("Purchases");
   });
 
+  test("a price-drop notification deep-links straight at the item", async ({ page }) => {
+    // The overnight sweep sends people here. If the hash stops opening the item,
+    // every notification silently lands on the top of the basket instead.
+    // Seed BEFORE any page script runs. Writing localStorage after a first load
+    // loses the race: the app's own save() flushes its in-memory (empty) basket
+    // back over the top.
+    await page.addInitScript(() => {
+      const t = Date.now();
+      localStorage.setItem(
+        "basket.db.v3",
+        JSON.stringify({
+          profiles: [{ id: "pr_e2e", name: "E2E", budget: 500, cur: "£" }],
+          current: "pr_e2e",
+          items: {
+            pr_e2e: [
+              { id: "it_deep", name: "Deeplink coat", cur: "£", price: 89, created: t,
+                priceHistory: [{ p: 89, t }], status: "want", priority: "nice",
+                cooldownDays: 0, bought: false, fav: false, lists: [], tags: [] },
+            ],
+          },
+          lists: { pr_e2e: [] },
+          settings: {},
+        }),
+      );
+    });
+
+    // No slash before the hash: PROTO is an origin in prod and a full page path
+    // when this is pointed at a local dev server.
+    await page.goto(`${PROTO}#item=it_deep`);
+    await expect(page.locator("#pTitle")).toHaveText("Deeplink coat");
+    await expect(page.locator("#pSub")).toContainText("£89");
+    await expect(page.locator("#panel")).toHaveClass(/open/);
+    // The hash is consumed, so a refresh does not reopen it forever.
+    expect(await page.evaluate(() => location.hash)).toBe("");
+  });
+
   test("privacy and terms pages are live", async ({ page }) => {
     for (const path of ["/privacy.html", "/terms.html"]) {
       const res = await page.goto(PROTO + path);

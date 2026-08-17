@@ -20,6 +20,9 @@ import { evaluateOccasion } from "@/lib/occasions";
 import { toDomainItem } from "@/lib/api/items";
 import { domainOf } from "@/lib/url";
 import { pushToUser } from "@/lib/push";
+import { applyBlobPrice, collectDue, isNotifiableDrop, type BlobTarget } from "@/lib/blob-sweep";
+import type { ProtoDb } from "@/lib/merge-basket";
+import { Prisma } from "@/lib/generated/prisma/client";
 import type { Stock, Item } from "@/lib/types";
 
 export const maxDuration = 60;
@@ -30,6 +33,15 @@ const WARM_MS = 70 * HOUR; // ~3 days
 const SLOW_MS = 158 * HOUR; // ~weekly
 const BATCH = 25;
 const DEADLINE_MS = 45_000; // leave headroom under maxDuration for DB writes
+
+/**
+ * The row sweep stops early so the blob sweep is guaranteed a slice. Almost every
+ * real basket today lives in a blob, so letting rows eat the whole budget would
+ * starve the only users who have items.
+ */
+const ROW_DEADLINE_MS = 24_000;
+const BLOB_USERS = 25;
+const BLOB_PER_USER = 6;
 
 /** Domains the spike showed block plain server fetches — weekly attempts only. */
 const SLOW_DOMAINS = new Set([
@@ -85,10 +97,16 @@ export async function GET(request: Request) {
     momentsCreated: 0,
     pushed: 0,
     deadlineHit: false,
+    // Prototype baskets (User.demoBackup), which the query above cannot see.
+    blobUsers: 0,
+    blobAttempted: 0,
+    blobUpdated: 0,
+    blobChanged: 0,
+    blobRefused: 0,
   };
 
   for (const item of due) {
-    if (Date.now() - started > DEADLINE_MS) {
+    if (Date.now() - started > ROW_DEADLINE_MS) {
       stats.deadlineHit = true;
       break;
     }
@@ -126,6 +144,116 @@ export async function GET(request: Request) {
     });
     stats.momentsCreated += await recordMoments(item.userId, moments, stats);
     await new Promise((r) => setTimeout(r, 300)); // pacing between stores
+  }
+
+  // ---- Prototype baskets ------------------------------------------------
+  // Everything above only sees Item rows. The prototype keeps a whole basket as
+  // one JSON blob on the user, so until now not a single item anybody actually
+  // saved was ever checked overnight — prices only moved while the page was
+  // open, which is why the price engine looked like it did nothing.
+  const blobOwners = await prisma.user.findMany({
+    where: { demoBackup: { not: Prisma.DbNull } },
+    select: { id: true, demoBackup: true, monthlyBudget: true },
+    take: BLOB_USERS,
+  });
+
+  for (const owner of blobOwners) {
+    if (Date.now() - started > DEADLINE_MS) {
+      stats.deadlineHit = true;
+      break;
+    }
+    const targets = collectDue(
+      owner.demoBackup as unknown as ProtoDb,
+      Date.now(),
+      SLOW_DOMAINS,
+      BLOB_PER_USER,
+    );
+    if (!targets.length) continue;
+    stats.blobUsers++;
+
+    // Fetch first, write once. Holding the blob across network calls would risk
+    // publishing a stale copy of somebody's entire basket over a sync that
+    // landed mid-sweep.
+    const fetched: Array<{
+      target: BlobTarget;
+      priceMinor: number;
+      currency: string;
+      availability?: string | null;
+      method?: string;
+    }> = [];
+
+    for (const target of targets) {
+      if (Date.now() - started > DEADLINE_MS) {
+        stats.deadlineHit = true;
+        break;
+      }
+      stats.blobAttempted++;
+      const outcome = await extractWithFallback(target.url, 15_000);
+      const ex = outcome.extracted;
+      if (!ex) {
+        if (outcome.blocked) stats.blocked++;
+        else stats.unreadable++;
+      } else {
+        fetched.push({
+          target,
+          priceMinor: ex.priceMinor,
+          currency: ex.currency,
+          availability: ex.availability,
+          method: ex.method,
+        });
+      }
+      await new Promise((r) => setTimeout(r, 300)); // pacing between stores
+    }
+    if (!fetched.length) continue;
+
+    // Re-read immediately before writing so a sync that happened during the
+    // fetches is preserved; we only ever touch the items we just checked.
+    const latest = await prisma.user.findUnique({
+      where: { id: owner.id },
+      select: { demoBackup: true },
+    });
+    let blob = (latest?.demoBackup ?? owner.demoBackup) as unknown as ProtoDb;
+    const now = Date.now();
+    const drops: Array<{ target: BlobTarget; previous: number; next: number }> = [];
+
+    for (const f of fetched) {
+      const applied = applyBlobPrice(blob, f.target, f, now);
+      blob = applied.blob;
+      if (!applied.applied) {
+        if (applied.refused === "currency_mismatch") stats.blobRefused++;
+        continue;
+      }
+      stats.blobUpdated++;
+      if (applied.changed) stats.blobChanged++;
+      if (isNotifiableDrop(applied.previous, applied.next, f.target.targetPrice)) {
+        drops.push({ target: f.target, previous: applied.previous!, next: applied.next! });
+      }
+    }
+
+    await prisma.user.update({
+      where: { id: owner.id },
+      // Bumping the timestamp is deliberate: it tells the next sync the cloud
+      // copy is newer, so the browser pulls the fresh prices in.
+      data: {
+        demoBackup: blob as unknown as Prisma.InputJsonValue,
+        demoBackupAt: new Date(now),
+      },
+    });
+
+    // Blob items have no Item row, so moments carry a null itemId and deep-link
+    // into the prototype by id instead.
+    const moments = drops.map((d) => ({
+      itemId: null,
+      kind: "price_drop",
+      title: `${d.target.name} dropped to ${d.target.currency}${round2(d.next)}`,
+      body:
+        d.target.targetPrice != null && d.next <= d.target.targetPrice
+          ? `That is at or below your target of ${d.target.currency}${round2(d.target.targetPrice)}.`
+          : `Down ${d.target.currency}${round2(d.previous - d.next)} from ${d.target.currency}${round2(d.previous)}.`,
+      deeplink: `/prototype.html#item=${d.target.itemId}`,
+      dedupeKey: `blob:${owner.id}:${d.target.itemId}:${d.next}`,
+    }));
+    stats.momentsCreated += await recordMoments(owner.id, moments, stats);
   }
 
   // Cheap second pass, no fetching: cool-offs that finished since last sweep.
@@ -176,6 +304,11 @@ export async function GET(request: Request) {
   }
 
   return Response.json({ ok: true, tookMs: Date.now() - started, ...stats });
+}
+
+/** Prototype prices are floats; notification copy should never read "£56.0747". */
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
 }
 
 /** Minimal Item for occasion evaluation — only `bought` and the latest price matter. */

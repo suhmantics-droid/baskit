@@ -2289,7 +2289,17 @@ function renderSidebar(){
 
   // capture from bookmarklet
   function handleHash(){
-    var h=location.hash||""; if(h.indexOf("#add")!==0) return;
+    var h=location.hash||"";
+    // Overnight price-drop notifications deep-link straight at the item, so the
+    // tap lands on the thing that changed rather than the top of the basket.
+    if(h.indexOf("#item=")===0){
+      var wanted=decodeURIComponent(h.slice(6));
+      try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){ location.hash=""; }
+      ensureProfile();
+      if(items().some(function(i){ return i.id===wanted; })) openDetail(wanted);
+      return;
+    }
+    if(h.indexOf("#add")!==0) return;
     var qs=h.indexOf("?")>-1?h.slice(h.indexOf("?")+1):""; var params={};
     qs.split("&").forEach(function(kv){ var p=kv.split("="); if(p[0]) params[p[0]]=decodeURIComponent((p[1]||"").replace(/\+/g," ")); });
     try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){ location.hash=""; }

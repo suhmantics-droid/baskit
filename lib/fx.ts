@@ -37,6 +37,16 @@ export function toIso(currency: string | null | undefined): string {
   return SYMBOL_TO_ISO[trimmed] ?? trimmed.toUpperCase();
 }
 
+const ISO_TO_SYMBOL: Record<string, string> = Object.fromEntries(
+  Object.entries(SYMBOL_TO_ISO).map(([symbol, code]) => [code, symbol]),
+);
+
+/** The display symbol for a code, for writing back into prototype-shaped data. */
+export function toSymbol(currency: string | null | undefined): string {
+  const code = toIso(currency);
+  return ISO_TO_SYMBOL[code] ?? code;
+}
+
 /** A base currency plus its rates to every other currency, as fetched. */
 export interface Rates {
   /** ISO code the rates are quoted against. */
