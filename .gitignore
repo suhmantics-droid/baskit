@@ -12,6 +12,11 @@
 
 # testing
 /coverage
+# Playwright run artefacts: screenshots, traces and .last-run.json churn on
+# every run and belong to the machine that ran them, not the repo.
+/test-results/
+/playwright-report/
+/blob-report/
 
 # next.js
 /.next/
